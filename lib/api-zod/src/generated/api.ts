@@ -27,6 +27,7 @@ export const ListTokensResponseItem = zod.object({
   id: zod.number(),
   fbId: zod.string(),
   token: zod.string(),
+  cookie: zod.string().nullish(),
   status: zod.enum(["active", "expired", "invalid"]),
   note: zod.string().nullish(),
   createdAt: zod.coerce.date(),
@@ -40,6 +41,7 @@ export const ListTokensResponse = zod.array(ListTokensResponseItem);
 export const CreateTokenBody = zod.object({
   fbId: zod.string(),
   token: zod.string(),
+  cookie: zod.string().nullish(),
   status: zod.enum(["active", "expired", "invalid"]),
   note: zod.string().nullish(),
 });
@@ -65,6 +67,7 @@ export const GetTokenResponse = zod.object({
   id: zod.number(),
   fbId: zod.string(),
   token: zod.string(),
+  cookie: zod.string().nullish(),
   status: zod.enum(["active", "expired", "invalid"]),
   note: zod.string().nullish(),
   createdAt: zod.coerce.date(),
@@ -81,6 +84,7 @@ export const UpdateTokenParams = zod.object({
 export const UpdateTokenBody = zod.object({
   fbId: zod.string().optional(),
   token: zod.string().optional(),
+  cookie: zod.string().nullish(),
   status: zod.enum(["active", "expired", "invalid"]).optional(),
   note: zod.string().nullish(),
 });
@@ -89,6 +93,7 @@ export const UpdateTokenResponse = zod.object({
   id: zod.number(),
   fbId: zod.string(),
   token: zod.string(),
+  cookie: zod.string().nullish(),
   status: zod.enum(["active", "expired", "invalid"]),
   note: zod.string().nullish(),
   createdAt: zod.coerce.date(),

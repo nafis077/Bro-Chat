@@ -162,6 +162,9 @@ components:
           type: string
         token:
           type: string
+        cookie:
+          type: string
+          nullable: true
         status:
           type: string
           enum: [active, expired, invalid]
@@ -189,6 +192,9 @@ components:
           type: string
         token:
           type: string
+        cookie:
+          type: string
+          nullable: true
         status:
           type: string
           enum: [active, expired, invalid]
@@ -207,6 +213,9 @@ components:
           type: string
         token:
           type: string
+        cookie:
+          type: string
+          nullable: true
         status:
           type: string
           enum: [active, expired, invalid]

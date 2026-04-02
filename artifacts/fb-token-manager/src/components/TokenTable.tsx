@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useListTokens, getListTokensQueryKey, useDeleteToken } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useListTokens, getListTokensQueryKey } from "@workspace/api-client-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,14 +15,47 @@ interface TokenTableProps {
   searchFilter?: string;
 }
 
+function CopyCell({ value, isCopied, onCopy }: { value: string; isCopied: boolean; onCopy: () => void }) {
+  return (
+    <div className="flex items-center gap-2 group">
+      <span className="font-mono text-xs inline-block text-muted-foreground bg-muted px-2 py-1 border border-border max-w-[110px] truncate">
+        {value.substring(0, 14)}…
+      </span>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        onClick={onCopy}
+      >
+        {isCopied ? (
+          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+        ) : (
+          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+        )}
+      </Button>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: "active" | "expired" | "invalid" }) {
+  const cls = {
+    active: "bg-[hsl(142.1_70.6%_45.3%_/_0.15)] text-[hsl(142.1_70.6%_45.3%)] border-[hsl(142.1_70.6%_45.3%_/_0.3)] shadow-[0_0_8px_hsl(142.1_70.6%_45.3%_/_0.15)]",
+    expired: "bg-[hsl(47.9_95.8%_53.1%_/_0.15)] text-[hsl(47.9_95.8%_53.1%)] border-[hsl(47.9_95.8%_53.1%_/_0.3)] shadow-[0_0_8px_hsl(47.9_95.8%_53.1%_/_0.15)]",
+    invalid: "bg-destructive/15 text-destructive border-destructive/30 shadow-[0_0_8px_hsl(var(--destructive)_/_0.15)]",
+  }[status];
+
+  return (
+    <Badge variant="outline" className={`font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-none border ${cls}`}>
+      {status}
+    </Badge>
+  );
+}
+
 export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [copiedId, setCopiedId] = useState<number | null>(null);
-  
+  const [copiedId, setCopiedId] = useState<{ id: number; field: "token" | "cookie" } | null>(null);
   const [editingToken, setEditingToken] = useState<FbToken | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  
   const [deletingToken, setDeletingToken] = useState<FbToken | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
@@ -32,29 +64,14 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
   if (searchFilter) params.search = searchFilter;
 
   const { data: tokens, isLoading } = useListTokens(params, {
-    query: {
-      queryKey: getListTokensQueryKey(params),
-    }
+    query: { queryKey: getListTokensQueryKey(params) },
   });
 
-  const handleCopy = (id: number, token: string) => {
-    navigator.clipboard.writeText(token);
-    setCopiedId(id);
-    toast({
-      title: "Token copied",
-      description: "Token copied to clipboard.",
-    });
+  const handleCopy = (id: number, value: string, field: "token" | "cookie") => {
+    navigator.clipboard.writeText(value);
+    setCopiedId({ id, field });
+    toast({ title: `${field === "token" ? "Token" : "Cookie"} copied`, description: "Copied to clipboard." });
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const openEdit = (token: FbToken) => {
-    setEditingToken(token);
-    setIsEditModalOpen(true);
-  };
-
-  const openDelete = (token: FbToken) => {
-    setDeletingToken(token);
-    setIsDeleteAlertOpen(true);
   };
 
   if (isLoading) {
@@ -63,8 +80,8 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
 
   if (!tokens || tokens.length === 0) {
     return (
-      <div className="border border-border bg-card p-12 text-center rounded-none shadow-sm flex flex-col items-center justify-center">
-        <p className="text-muted-foreground font-mono text-sm">No tokens found matching your criteria.</p>
+      <div className="border border-border bg-card p-12 text-center rounded-none shadow-sm">
+        <p className="text-muted-foreground font-mono text-sm">No tokens found.</p>
       </div>
     );
   }
@@ -75,9 +92,10 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border">
-              <TableHead className="w-[80px] font-mono text-xs uppercase tracking-wider text-muted-foreground">ID</TableHead>
+              <TableHead className="w-[50px] font-mono text-xs uppercase tracking-wider text-muted-foreground">ID</TableHead>
               <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">FB ID</TableHead>
               <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Token</TableHead>
+              <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Cookie</TableHead>
               <TableHead className="w-[100px] font-mono text-xs uppercase tracking-wider text-muted-foreground">Status</TableHead>
               <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Note</TableHead>
               <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Created</TableHead>
@@ -90,40 +108,46 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
                 <TableCell className="font-mono text-xs text-muted-foreground">{token.id}</TableCell>
                 <TableCell className="font-mono text-sm font-medium">{token.fbId}</TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2 group">
-                    <span className="font-mono text-xs truncate max-w-[150px] inline-block text-muted-foreground bg-muted px-2 py-1 border border-border">
-                      {token.token.substring(0, 16)}...
-                    </span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" 
-                      onClick={() => handleCopy(token.id, token.token)}
-                      title="Copy full token"
-                    >
-                      {copiedId === token.id ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
+                  <CopyCell
+                    value={token.token}
+                    isCopied={copiedId?.id === token.id && copiedId?.field === "token"}
+                    onCopy={() => handleCopy(token.id, token.token, "token")}
+                  />
+                </TableCell>
+                <TableCell>
+                  {token.cookie ? (
+                    <CopyCell
+                      value={token.cookie}
+                      isCopied={copiedId?.id === token.id && copiedId?.field === "cookie"}
+                      onCopy={() => handleCopy(token.id, token.cookie!, "cookie")}
+                    />
+                  ) : (
+                    <span className="font-mono text-xs opacity-30 italic">none</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={token.status} />
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate" title={token.note || ""}>
-                  {token.note || <span className="italic opacity-50">none</span>}
+                <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate" title={token.note || ""}>
+                  {token.note || <span className="italic opacity-40">none</span>}
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
                   {format(new Date(token.createdAt), "yyyy-MM-dd HH:mm")}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => openEdit(token)}>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      onClick={() => { setEditingToken(token); setIsEditModalOpen(true); }}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => openDelete(token)}>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => { setDeletingToken(token); setIsDeleteAlertOpen(true); }}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -135,39 +159,11 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
       </div>
 
       {isEditModalOpen && editingToken && (
-        <TokenFormModal 
-          isOpen={isEditModalOpen} 
-          onOpenChange={setIsEditModalOpen} 
-          token={editingToken} 
-        />
+        <TokenFormModal isOpen={isEditModalOpen} onOpenChange={setIsEditModalOpen} token={editingToken} />
       )}
-
       {isDeleteAlertOpen && deletingToken && (
-        <TokenDeleteAlert 
-          isOpen={isDeleteAlertOpen} 
-          onOpenChange={setIsDeleteAlertOpen} 
-          token={deletingToken} 
-        />
+        <TokenDeleteAlert isOpen={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen} token={deletingToken} />
       )}
     </>
-  );
-}
-
-function StatusBadge({ status }: { status: "active" | "expired" | "invalid" }) {
-  const getStatusClasses = () => {
-    switch (status) {
-      case "active":
-        return "bg-[hsl(142.1_70.6%_45.3%_/_0.15)] text-[hsl(142.1_70.6%_45.3%)] border-[hsl(142.1_70.6%_45.3%_/_0.3)] shadow-[0_0_8px_hsl(142.1_70.6%_45.3%_/_0.15)]";
-      case "expired":
-        return "bg-[hsl(47.9_95.8%_53.1%_/_0.15)] text-[hsl(47.9_95.8%_53.1%)] border-[hsl(47.9_95.8%_53.1%_/_0.3)] shadow-[0_0_8px_hsl(47.9_95.8%_53.1%_/_0.15)]";
-      case "invalid":
-        return "bg-destructive/15 text-destructive border-destructive/30 shadow-[0_0_8px_hsl(var(--destructive)_/_0.15)]";
-    }
-  };
-
-  return (
-    <Badge variant="outline" className={`font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-none border ${getStatusClasses()}`}>
-      {status}
-    </Badge>
   );
 }

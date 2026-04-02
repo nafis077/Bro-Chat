@@ -10,6 +10,7 @@ import type { UpdateFbTokenBodyStatus } from "./updateFbTokenBodyStatus";
 export interface UpdateFbTokenBody {
   fbId?: string;
   token?: string;
+  cookie?: string | null;
   status?: UpdateFbTokenBodyStatus;
   note?: string | null;
 }

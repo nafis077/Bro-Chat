@@ -11,6 +11,7 @@ export interface FbToken {
   id: number;
   fbId: string;
   token: string;
+  cookie?: string | null;
   status: FbTokenStatus;
   note?: string | null;
   createdAt: Date;

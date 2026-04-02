@@ -39,6 +39,7 @@ router.get("/tokens", async (req, res) => {
     id: t.id,
     fbId: t.fbId,
     token: t.token,
+    cookie: t.cookie,
     status: t.status,
     note: t.note,
     createdAt: t.createdAt.toISOString(),
@@ -60,6 +61,7 @@ router.post("/tokens", async (req, res) => {
     .values({
       fbId: body.data.fbId,
       token: body.data.token,
+      cookie: body.data.cookie ?? null,
       status: body.data.status as "active" | "expired" | "invalid",
       note: body.data.note ?? null,
     })
@@ -69,6 +71,7 @@ router.post("/tokens", async (req, res) => {
     id: created.id,
     fbId: created.fbId,
     token: created.token,
+    cookie: created.cookie,
     status: created.status,
     note: created.note,
     createdAt: created.createdAt.toISOString(),
@@ -115,6 +118,7 @@ router.get("/tokens/:id", async (req, res) => {
     id: token.id,
     fbId: token.fbId,
     token: token.token,
+    cookie: token.cookie,
     status: token.status,
     note: token.note,
     createdAt: token.createdAt.toISOString(),
@@ -140,6 +144,7 @@ router.put("/tokens/:id", async (req, res) => {
   };
   if (body.data.fbId !== undefined) updateData.fbId = body.data.fbId;
   if (body.data.token !== undefined) updateData.token = body.data.token;
+  if (body.data.cookie !== undefined) updateData.cookie = body.data.cookie;
   if (body.data.status !== undefined) updateData.status = body.data.status as "active" | "expired" | "invalid";
   if (body.data.note !== undefined) updateData.note = body.data.note;
 
@@ -158,6 +163,7 @@ router.put("/tokens/:id", async (req, res) => {
     id: updated.id,
     fbId: updated.fbId,
     token: updated.token,
+    cookie: updated.cookie,
     status: updated.status,
     note: updated.note,
     createdAt: updated.createdAt.toISOString(),

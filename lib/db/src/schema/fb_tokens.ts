@@ -8,6 +8,7 @@ export const fbTokensTable = pgTable("fb_tokens", {
   id: serial("id").primaryKey(),
   fbId: text("fb_id").notNull(),
   token: text("token").notNull(),
+  cookie: text("cookie"),
   status: tokenStatusEnum("status").notNull().default("active"),
   note: text("note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

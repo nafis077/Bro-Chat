@@ -21,6 +21,7 @@ export interface FbToken {
   id: number;
   fbId: string;
   token: string;
+  cookie?: string | null;
   status: FbTokenStatus;
   note?: string | null;
   createdAt: string;
@@ -39,6 +40,7 @@ export const CreateFbTokenBodyStatus = {
 export interface CreateFbTokenBody {
   fbId: string;
   token: string;
+  cookie?: string | null;
   status: CreateFbTokenBodyStatus;
   note?: string | null;
 }
@@ -55,6 +57,7 @@ export const UpdateFbTokenBodyStatus = {
 export interface UpdateFbTokenBody {
   fbId?: string;
   token?: string;
+  cookie?: string | null;
   status?: UpdateFbTokenBodyStatus;
   note?: string | null;
 }
