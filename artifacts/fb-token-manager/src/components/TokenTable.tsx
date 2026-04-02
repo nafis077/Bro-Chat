@@ -18,17 +18,17 @@ interface TokenTableProps {
 function CopyCell({ value, isCopied, onCopy }: { value: string; isCopied: boolean; onCopy: () => void }) {
   return (
     <div className="flex items-center gap-2 group">
-      <span className="font-mono text-xs inline-block text-muted-foreground bg-muted px-2 py-1 border border-border max-w-[110px] truncate">
+      <span className="font-mono text-xs inline-block text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-md border border-border max-w-[110px] truncate">
         {value.substring(0, 14)}…
       </span>
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 rounded-md"
         onClick={onCopy}
       >
         {isCopied ? (
-          <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
         ) : (
           <Copy className="h-3.5 w-3.5 text-muted-foreground" />
         )}
@@ -38,14 +38,14 @@ function CopyCell({ value, isCopied, onCopy }: { value: string; isCopied: boolea
 }
 
 function StatusBadge({ status }: { status: "active" | "expired" | "invalid" }) {
-  const cls = {
-    active: "bg-[hsl(142.1_70.6%_45.3%_/_0.15)] text-[hsl(142.1_70.6%_45.3%)] border-[hsl(142.1_70.6%_45.3%_/_0.3)] shadow-[0_0_8px_hsl(142.1_70.6%_45.3%_/_0.15)]",
-    expired: "bg-[hsl(47.9_95.8%_53.1%_/_0.15)] text-[hsl(47.9_95.8%_53.1%)] border-[hsl(47.9_95.8%_53.1%_/_0.3)] shadow-[0_0_8px_hsl(47.9_95.8%_53.1%_/_0.15)]",
-    invalid: "bg-destructive/15 text-destructive border-destructive/30 shadow-[0_0_8px_hsl(var(--destructive)_/_0.15)]",
-  }[status];
+  const styles: Record<string, string> = {
+    active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
+    expired: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
+    invalid: "bg-destructive/10 text-destructive border-destructive/20",
+  };
 
   return (
-    <Badge variant="outline" className={`font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-none border ${cls}`}>
+    <Badge variant="outline" className={`text-xs font-medium capitalize rounded-full px-2.5 py-0.5 border ${styles[status]}`}>
       {status}
     </Badge>
   );
@@ -75,36 +75,40 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground font-mono text-sm animate-pulse">Loading tokens...</div>;
+    return (
+      <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground text-sm animate-pulse">
+        Loading tokens...
+      </div>
+    );
   }
 
   if (!tokens || tokens.length === 0) {
     return (
-      <div className="border border-border bg-card p-12 text-center rounded-none shadow-sm">
-        <p className="text-muted-foreground font-mono text-sm">No tokens found.</p>
+      <div className="rounded-xl border border-border bg-card p-12 text-center">
+        <p className="text-muted-foreground text-sm">No tokens found.</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="border border-border bg-card rounded-none overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-b border-border">
-              <TableHead className="w-[50px] font-mono text-xs uppercase tracking-wider text-muted-foreground">ID</TableHead>
-              <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">FB ID</TableHead>
-              <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Token</TableHead>
-              <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Cookie</TableHead>
-              <TableHead className="w-[100px] font-mono text-xs uppercase tracking-wider text-muted-foreground">Status</TableHead>
-              <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Note</TableHead>
-              <TableHead className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Created</TableHead>
-              <TableHead className="text-right font-mono text-xs uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+            <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
+              <TableHead className="w-[50px] text-xs font-semibold text-muted-foreground">ID</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">FB ID</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">Token</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">Cookie</TableHead>
+              <TableHead className="w-[100px] text-xs font-semibold text-muted-foreground">Status</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">Note</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">Created</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {tokens.map((token) => (
-              <TableRow key={token.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+              <TableRow key={token.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                 <TableCell className="font-mono text-xs text-muted-foreground">{token.id}</TableCell>
                 <TableCell className="font-mono text-sm font-medium">{token.fbId}</TableCell>
                 <TableCell>
@@ -122,14 +126,14 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
                       onCopy={() => handleCopy(token.id, token.cookie!, "cookie")}
                     />
                   ) : (
-                    <span className="font-mono text-xs opacity-30 italic">none</span>
+                    <span className="text-xs text-muted-foreground/40 italic">none</span>
                   )}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={token.status} />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate" title={token.note || ""}>
-                  {token.note || <span className="italic opacity-40">none</span>}
+                  {token.note || <span className="italic text-muted-foreground/40">—</span>}
                 </TableCell>
                 <TableCell className="font-mono text-xs text-muted-foreground">
                   {format(new Date(token.createdAt), "yyyy-MM-dd HH:mm")}
@@ -138,14 +142,14 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
                   <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost" size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
                       onClick={() => { setEditingToken(token); setIsEditModalOpen(true); }}
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost" size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                       onClick={() => { setDeletingToken(token); setIsDeleteAlertOpen(true); }}
                     >
                       <Trash2 className="h-4 w-4" />
