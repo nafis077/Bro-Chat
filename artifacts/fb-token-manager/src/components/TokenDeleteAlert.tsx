@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/lib/lang-context";
 import { Trash2 } from "lucide-react";
 
 interface TokenDeleteAlertProps {
@@ -22,6 +23,7 @@ interface TokenDeleteAlertProps {
 
 export function TokenDeleteAlert({ isOpen, onOpenChange, token }: TokenDeleteAlertProps) {
   const { toast } = useToast();
+  const { t } = useLang();
   const queryClient = useQueryClient();
 
   const deleteMutation = useDeleteToken({
@@ -29,46 +31,35 @@ export function TokenDeleteAlert({ isOpen, onOpenChange, token }: TokenDeleteAle
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListTokensQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetTokenStatsQueryKey() });
-        toast({ 
-          title: "Token deleted", 
-          description: "The token has been removed from the system." 
-        });
+        toast({ title: t.toastDeleted, description: t.toastDeletedDesc });
         onOpenChange(false);
       },
       onError: () => {
-        toast({ 
-          title: "Error deleting token", 
-          description: "An error occurred. Please try again.", 
-          variant: "destructive" 
-        });
-      }
-    }
+        toast({ title: t.toastDeleteError, description: t.toastDeleteErrorDesc, variant: "destructive" });
+      },
+    },
   });
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="rounded-none border-border bg-card sm:max-w-[400px]">
+      <AlertDialogContent className="rounded-xl border-border bg-card sm:max-w-[420px]">
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-mono uppercase tracking-wider flex items-center gap-2 text-destructive">
+          <AlertDialogTitle className="flex items-center gap-2 text-destructive font-semibold">
             <Trash2 className="w-5 h-5" />
-            Delete Token
+            {t.deleteTitle}
           </AlertDialogTitle>
-          <AlertDialogDescription className="font-mono text-sm text-muted-foreground mt-4">
-            Are you sure you want to delete token for FB ID <span className="text-foreground font-bold">{token.fbId}</span>?
-            This action cannot be undone.
+          <AlertDialogDescription className="text-sm text-muted-foreground mt-3">
+            {t.deleteConfirm(token.fbId)}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="mt-6">
-          <AlertDialogCancel className="rounded-none font-mono uppercase text-xs">Cancel</AlertDialogCancel>
-          <AlertDialogAction 
-            onClick={(e) => {
-              e.preventDefault();
-              deleteMutation.mutate({ id: token.id });
-            }}
+        <AlertDialogFooter className="mt-4">
+          <AlertDialogCancel className="rounded-lg">{t.deleteCancel}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); deleteMutation.mutate({ id: token.id }); }}
             disabled={deleteMutation.isPending}
-            className="rounded-none font-mono uppercase text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            {deleteMutation.isPending ? t.deleting : t.deleteBtn}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

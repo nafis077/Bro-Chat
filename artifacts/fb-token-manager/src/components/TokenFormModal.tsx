@@ -12,7 +12,6 @@ import {
   getGetTokenQueryKey,
 } from "@workspace/api-client-react";
 import type { FbToken } from "@workspace/api-client-react/src/generated/api.schemas";
-
 import {
   Dialog,
   DialogContent,
@@ -40,19 +39,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Save,
-  Loader2,
-  Upload,
-  FileText,
-  AlertCircle,
-  CheckCircle2,
-  Trash2,
-} from "lucide-react";
+import { useLang } from "@/lib/lang-context";
+import type { T } from "@/lib/i18n";
+import { Save, Loader2, Upload, FileText, AlertCircle, CheckCircle2, Trash2 } from "lucide-react";
 
 const formSchema = z.object({
-  fbId: z.string().min(1, "Facebook ID is required"),
-  token: z.string().min(1, "Token is required"),
+  fbId: z.string().min(1),
+  token: z.string().min(1),
   cookie: z.string().optional(),
   status: z.enum(["active", "expired", "invalid"]),
   note: z.string().optional(),
@@ -75,36 +68,23 @@ interface TokenFormModalProps {
   token?: FbToken;
 }
 
-// Flexible parser: supports id|token|cookie|status|note or with commas
-// Also handles id|token or id,token (2 fields)
-function parseFileContent(content: string): ParsedToken[] {
-  const lines = content
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
+function parseFileContent(content: string, t: T): ParsedToken[] {
+  const lines = content.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
   const validStatuses = ["active", "expired", "invalid"];
 
   return lines.map((line) => {
     const delimiter = line.includes("|") ? "|" : ",";
     const parts = line.split(delimiter).map((p) => p.trim());
-
     const [rawFbId = "", rawToken = "", rawCookie = "", rawStatus = "", ...noteParts] = parts;
 
-    const fbId = rawFbId;
-    const token = rawToken;
-
-    // cookie is 3rd field — if it looks like a status word, treat it as status
     let cookie = "";
     let status: "active" | "expired" | "invalid" = "active";
     let note = "";
 
     if (validStatuses.includes(rawCookie.toLowerCase())) {
-      // Format: id|token|status|note (no cookie)
       status = rawCookie.toLowerCase() as "active" | "expired" | "invalid";
       note = [rawStatus, ...noteParts].join(delimiter).trim();
     } else {
-      // Format: id|token|cookie|status|note
       cookie = rawCookie;
       if (validStatuses.includes(rawStatus.toLowerCase())) {
         status = rawStatus.toLowerCase() as "active" | "expired" | "invalid";
@@ -113,19 +93,125 @@ function parseFileContent(content: string): ParsedToken[] {
     }
 
     let error: string | undefined;
-    if (!fbId) error = "Missing FB ID";
-    else if (!token) error = "Missing token";
+    if (!rawFbId) error = t.missingFbId;
+    else if (!rawToken) error = t.missingToken;
 
-    return { fbId, token, cookie, status, note, error };
+    return { fbId: rawFbId, token: rawToken, cookie, status, note, error };
   });
 }
 
-export function TokenFormModal({
-  isOpen,
-  onOpenChange,
-  token,
-}: TokenFormModalProps) {
+interface ManualFormProps {
+  form: ReturnType<typeof useForm<FormValues>>;
+  onSubmit: (values: FormValues) => void;
+  isPending: boolean;
+  isEdit: boolean;
+  onCancel: () => void;
+  t: T;
+}
+
+function ManualForm({ form, onSubmit, isPending, isEdit, onCancel, t }: ManualFormProps) {
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+        <FormField
+          control={form.control}
+          name="fbId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-muted-foreground">{t.labelFbId}</FormLabel>
+              <FormControl>
+                <Input placeholder="100012345678901" className="rounded-lg font-mono" {...field} />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="token"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-muted-foreground">{t.labelToken}</FormLabel>
+              <FormControl>
+                <Input placeholder="EAABsbCS1iHgBO..." className="rounded-lg font-mono" type="password" {...field} />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="cookie"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-muted-foreground">
+                {t.labelCookie} <span className="opacity-50 font-normal">{t.labelCookieOptional}</span>
+              </FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="datr=xxx; sb=xxx; c_user=xxx; xs=xxx..."
+                  className="resize-none rounded-lg font-mono min-h-[70px] text-xs"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-muted-foreground">{t.labelStatus}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger className="rounded-lg">
+                    <SelectValue placeholder={t.selectStatus} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="rounded-lg">
+                  <SelectItem value="active">{t.statusActive}</SelectItem>
+                  <SelectItem value="expired">{t.statusExpired}</SelectItem>
+                  <SelectItem value="invalid">{t.statusInvalid}</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="note"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-sm font-medium text-muted-foreground">
+                {t.labelNote} <span className="opacity-50 font-normal">{t.labelNoteOptional}</span>
+              </FormLabel>
+              <FormControl>
+                <Textarea placeholder={t.placeholderNote} className="resize-none rounded-lg min-h-[60px]" {...field} />
+              </FormControl>
+              <FormMessage className="text-xs" />
+            </FormItem>
+          )}
+        />
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={onCancel} className="rounded-lg">
+            {t.cancel}
+          </Button>
+          <Button type="submit" disabled={isPending} className="rounded-lg flex items-center gap-2">
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isEdit ? t.save : t.createBtn}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
+export function TokenFormModal({ isOpen, onOpenChange, token }: TokenFormModalProps) {
   const { toast } = useToast();
+  const { t } = useLang();
   const queryClient = useQueryClient();
   const isEdit = !!token;
 
@@ -137,12 +223,7 @@ export function TokenFormModal({
 
   const { data: fetchedToken, isLoading: isFetching } = useGetToken(
     token?.id as number,
-    {
-      query: {
-        enabled: isEdit && isOpen,
-        queryKey: getGetTokenQueryKey(token?.id as number),
-      },
-    }
+    { query: { enabled: isEdit && isOpen, queryKey: getGetTokenQueryKey(token?.id as number) } }
   );
 
   const form = useForm<FormValues>({
@@ -177,12 +258,12 @@ export function TokenFormModal({
     mutation: {
       onSuccess: () => {
         invalidateAll();
-        toast({ title: "Token created", description: "Token has been added successfully." });
+        toast({ title: t.toastCreated, description: t.toastCreatedDesc });
         onOpenChange(false);
         form.reset();
       },
       onError: () => {
-        toast({ title: "Error creating token", description: "Please check your inputs and try again.", variant: "destructive" });
+        toast({ title: t.toastCreateError, description: t.toastCreateErrorDesc, variant: "destructive" });
       },
     },
   });
@@ -192,11 +273,11 @@ export function TokenFormModal({
       onSuccess: () => {
         invalidateAll();
         if (token) queryClient.invalidateQueries({ queryKey: getGetTokenQueryKey(token.id) });
-        toast({ title: "Token updated", description: "Changes have been saved." });
+        toast({ title: t.toastUpdated, description: t.toastUpdatedDesc });
         onOpenChange(false);
       },
       onError: () => {
-        toast({ title: "Error updating token", description: "Please try again.", variant: "destructive" });
+        toast({ title: t.toastUpdateError, description: t.toastUpdateErrorDesc, variant: "destructive" });
       },
     },
   });
@@ -216,7 +297,7 @@ export function TokenFormModal({
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      setParsedTokens(parseFileContent(content));
+      setParsedTokens(parseFileContent(content, t));
     };
     reader.readAsText(file);
   };
@@ -234,11 +315,11 @@ export function TokenFormModal({
   };
 
   const removeRow = (index: number) => setParsedTokens((p) => p.filter((_, i) => i !== index));
-
   const updateRowStatus = (index: number, status: "active" | "expired" | "invalid") =>
-    setParsedTokens((p) => p.map((t, i) => (i === index ? { ...t, status } : t)));
+    setParsedTokens((p) => p.map((tk, i) => (i === index ? { ...tk, status } : tk)));
 
-  const validTokens = parsedTokens.filter((t) => !t.error);
+  const validTokens = parsedTokens.filter((tk) => !tk.error);
+  const errorTokens = parsedTokens.filter((tk) => tk.error);
 
   const handleBulkImport = async () => {
     if (validTokens.length === 0) return;
@@ -246,10 +327,10 @@ export function TokenFormModal({
     let successCount = 0;
     let failCount = 0;
 
-    for (const t of validTokens) {
+    for (const tk of validTokens) {
       await new Promise<void>((resolve) => {
         createMutation.mutate(
-          { data: { fbId: t.fbId, token: t.token, cookie: t.cookie || undefined, status: t.status, note: t.note || undefined } },
+          { data: { fbId: tk.fbId, token: tk.token, cookie: tk.cookie || undefined, status: tk.status, note: tk.note || undefined } },
           { onSuccess: () => { successCount++; resolve(); }, onError: () => { failCount++; resolve(); } }
         );
       });
@@ -261,8 +342,8 @@ export function TokenFormModal({
     setFileName("");
     onOpenChange(false);
     toast({
-      title: "Import complete",
-      description: `${successCount} token(s) imported${failCount > 0 ? `, ${failCount} failed` : ""}.`,
+      title: t.toastImported,
+      description: t.toastImportedDesc(successCount, failCount),
       variant: failCount > 0 ? "destructive" : "default",
     });
   };
@@ -275,13 +356,13 @@ export function TokenFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) resetFileState(); onOpenChange(open); }}>
-      <DialogContent className="sm:max-w-[620px] rounded-none border-border bg-card max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[620px] rounded-xl border-border bg-card max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-mono uppercase tracking-wider">
-            {isEdit ? "Edit Token" : "Add Token"}
+          <DialogTitle className="font-semibold text-lg">
+            {isEdit ? t.editToken : t.newToken}
           </DialogTitle>
-          <DialogDescription className="font-mono text-xs">
-            {isEdit ? "Modify token details below." : "Enter details manually or import from a file."}
+          <DialogDescription className="text-sm">
+            {isEdit ? t.editTokenDesc : t.newTokenDesc}
           </DialogDescription>
         </DialogHeader>
 
@@ -291,31 +372,30 @@ export function TokenFormModal({
               <Loader2 className="w-6 h-6 animate-spin" />
             </div>
           ) : (
-            <ManualForm form={form} onSubmit={onSubmit} isPending={isPending} isEdit onCancel={() => onOpenChange(false)} />
+            <ManualForm form={form} onSubmit={onSubmit} isPending={isPending} isEdit t={t} onCancel={() => onOpenChange(false)} />
           )
         ) : (
           <Tabs defaultValue="manual" className="pt-2">
-            <TabsList className="rounded-none border border-border bg-background w-full">
-              <TabsTrigger value="manual" className="flex-1 rounded-none font-mono text-xs uppercase tracking-wider">
-                Manual Input
+            <TabsList className="rounded-lg border border-border bg-muted/30 w-full">
+              <TabsTrigger value="manual" className="flex-1 rounded-md text-sm font-medium">
+                {t.manualInput}
               </TabsTrigger>
-              <TabsTrigger value="file" className="flex-1 rounded-none font-mono text-xs uppercase tracking-wider">
-                Import File
+              <TabsTrigger value="file" className="flex-1 rounded-md text-sm font-medium">
+                {t.importFile}
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="manual">
-              <ManualForm form={form} onSubmit={onSubmit} isPending={isPending} isEdit={false} onCancel={() => onOpenChange(false)} />
+              <ManualForm form={form} onSubmit={onSubmit} isPending={isPending} isEdit={false} t={t} onCancel={() => onOpenChange(false)} />
             </TabsContent>
 
             <TabsContent value="file" className="space-y-4 pt-4">
-              {/* Format hint */}
-              <div className="bg-muted/30 border border-border p-3 font-mono text-xs text-muted-foreground space-y-1">
-                <p className="text-foreground font-semibold mb-1">File format (CSV or TXT) — mỗi dòng 1 token:</p>
-                <p><span className="text-primary">id | token | cookie | status | note</span></p>
-                <p><span className="text-primary">id | token | cookie</span> <span className="opacity-60">(status mac dinh: active)</span></p>
-                <p><span className="text-primary">id | token</span> <span className="opacity-60">(khong co cookie)</span></p>
-                <p className="opacity-60 pt-1">Dau phan cach: pipe (|) hoac phay (,) deu duoc</p>
+              <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                <p className="text-foreground font-semibold mb-1">{t.fileFormatTitle}</p>
+                <p><span className="text-primary font-mono">{t.fileFormatFull}</span></p>
+                <p><span className="text-primary font-mono">{t.fileFormatNoCookie}</span></p>
+                <p><span className="text-primary font-mono">{t.fileFormatMinimal}</span></p>
+                <p className="opacity-60 pt-1">{t.fileFormatNote}</p>
               </div>
 
               {parsedTokens.length === 0 ? (
@@ -324,71 +404,72 @@ export function TokenFormModal({
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-none p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors
-                    ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/20"}`}
+                  className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 cursor-pointer transition-colors ${
+                    isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/20"
+                  }`}
                 >
                   <Upload className={`w-8 h-8 ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
-                  <div className="text-center font-mono">
-                    <p className="text-sm font-medium">Keo tha file hoac click de chon</p>
-                    <p className="text-xs text-muted-foreground mt-1">.csv hoac .txt</p>
+                  <div className="text-center">
+                    <p className="text-sm font-medium">{t.dropZoneTitle}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{t.dropZoneHint}</p>
                   </div>
                   <input ref={fileInputRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleFileInput} />
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-mono text-xs">
+                    <div className="flex items-center gap-2 text-xs">
                       <FileText className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-muted-foreground truncate max-w-[200px]">{fileName}</span>
-                      <span className="text-primary">{validTokens.length} hop le</span>
-                      {parsedTokens.filter((t) => t.error).length > 0 && (
-                        <span className="text-destructive">{parsedTokens.filter((t) => t.error).length} loi</span>
+                      <span className="text-muted-foreground truncate max-w-[180px]">{fileName}</span>
+                      <span className="text-emerald-500 font-medium">{t.validCount(validTokens.length)}</span>
+                      {errorTokens.length > 0 && (
+                        <span className="text-destructive font-medium">{t.errorCount(errorTokens.length)}</span>
                       )}
                     </div>
-                    <Button variant="ghost" size="sm" className="rounded-none font-mono text-xs h-7" onClick={resetFileState}>
-                      Xoa
+                    <Button variant="ghost" size="sm" className="rounded-lg text-xs h-7" onClick={resetFileState}>
+                      {t.clearFile}
                     </Button>
                   </div>
 
-                  <div className="border border-border max-h-64 overflow-y-auto">
+                  <div className="rounded-lg border border-border max-h-56 overflow-y-auto">
                     <table className="w-full text-xs font-mono">
                       <thead className="bg-muted/30 sticky top-0">
                         <tr>
-                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border">FB ID</th>
-                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border">Token</th>
-                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border">Cookie</th>
-                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border w-28">Status</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border">{t.colFbId}</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border">{t.colToken}</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border">{t.colCookie}</th>
+                          <th className="text-left px-2 py-1.5 text-muted-foreground font-medium border-b border-border w-28">{t.colStatus}</th>
                           <th className="w-8 border-b border-border"></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {parsedTokens.map((t, i) => (
-                          <tr key={i} className={`border-b border-border/50 last:border-0 ${t.error ? "bg-destructive/5" : "hover:bg-muted/10"}`}>
+                        {parsedTokens.map((tk, i) => (
+                          <tr key={i} className={`border-b border-border/50 last:border-0 ${tk.error ? "bg-destructive/5" : "hover:bg-muted/10"}`}>
                             <td className="px-2 py-1.5">
-                              {t.error ? (
+                              {tk.error ? (
                                 <span className="flex items-center gap-1 text-destructive">
-                                  <AlertCircle className="w-3 h-3" />{t.error}
+                                  <AlertCircle className="w-3 h-3" />{tk.error}
                                 </span>
                               ) : (
-                                <span className="text-foreground">{t.fbId}</span>
+                                <span className="text-foreground">{tk.fbId}</span>
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground">
-                              {t.token ? `${t.token.slice(0, 16)}…` : "-"}
+                              {tk.token ? `${tk.token.slice(0, 16)}…` : "-"}
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground">
-                              {t.cookie ? `${t.cookie.slice(0, 14)}…` : <span className="opacity-40">-</span>}
+                              {tk.cookie ? `${tk.cookie.slice(0, 14)}…` : <span className="opacity-40">-</span>}
                             </td>
                             <td className="px-2 py-1.5">
-                              {!t.error && (
-                                <Select value={t.status} onValueChange={(v) => updateRowStatus(i, v as "active" | "expired" | "invalid")}>
-                                  <SelectTrigger className="h-6 rounded-none text-xs font-mono border-border bg-transparent px-1">
+                              {!tk.error && (
+                                <Select value={tk.status} onValueChange={(v) => updateRowStatus(i, v as "active" | "expired" | "invalid")}>
+                                  <SelectTrigger className="h-6 rounded-md text-xs border-border bg-transparent px-1">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent className="rounded-none border-border font-mono text-xs">
-                                    <SelectItem value="active" className="rounded-none">active</SelectItem>
-                                    <SelectItem value="expired" className="rounded-none">expired</SelectItem>
-                                    <SelectItem value="invalid" className="rounded-none">invalid</SelectItem>
+                                  <SelectContent className="rounded-lg border-border text-xs">
+                                    <SelectItem value="active">active</SelectItem>
+                                    <SelectItem value="expired">expired</SelectItem>
+                                    <SelectItem value="invalid">invalid</SelectItem>
                                   </SelectContent>
                                 </Select>
                               )}
@@ -404,18 +485,18 @@ export function TokenFormModal({
                     </table>
                   </div>
 
-                  <div className="flex justify-between items-center pt-2">
-                    <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
+                  <div className="flex justify-between items-center pt-1">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <CheckCircle2 className="w-4 h-4 text-primary" />
-                      {validTokens.length} token(s) san sang import
+                      {t.readyToImport(validTokens.length)}
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-none font-mono text-xs" disabled={importPending}>
-                        Huy
+                      <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-lg text-sm" disabled={importPending}>
+                        {t.cancel}
                       </Button>
-                      <Button onClick={handleBulkImport} disabled={validTokens.length === 0 || importPending} className="rounded-none font-mono text-xs gap-2">
+                      <Button onClick={handleBulkImport} disabled={validTokens.length === 0 || importPending} className="rounded-lg text-sm gap-2">
                         {importPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                        Import {validTokens.length} Token(s)
+                        {t.importBtn(validTokens.length)}
                       </Button>
                     </div>
                   </div>
@@ -426,118 +507,5 @@ export function TokenFormModal({
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface ManualFormProps {
-  form: ReturnType<typeof useForm<FormValues>>;
-  onSubmit: (values: FormValues) => void;
-  isPending: boolean;
-  isEdit: boolean;
-  onCancel: () => void;
-}
-
-function ManualForm({ form, onSubmit, isPending, isEdit, onCancel }: ManualFormProps) {
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-        <FormField
-          control={form.control}
-          name="fbId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-mono text-xs uppercase tracking-wider text-muted-foreground">FB Account ID</FormLabel>
-              <FormControl>
-                <Input placeholder="100012345678901" className="rounded-none font-mono" {...field} />
-              </FormControl>
-              <FormMessage className="font-mono text-xs" />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="token"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Access Token</FormLabel>
-              <FormControl>
-                <Input placeholder="EAABsbCS1iHgBO..." className="rounded-none font-mono" type="password" {...field} />
-              </FormControl>
-              <FormMessage className="font-mono text-xs" />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="cookie"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                Cookie <span className="opacity-50">(optional)</span>
-              </FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="datr=xxx; sb=xxx; c_user=xxx; xs=xxx..."
-                  className="resize-none rounded-none font-mono min-h-[70px] text-xs"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="font-mono text-xs" />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-mono text-xs uppercase tracking-wider text-muted-foreground">Status</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="rounded-none font-mono">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent className="rounded-none border-border">
-                  <SelectItem value="active" className="font-mono rounded-none">ACTIVE</SelectItem>
-                  <SelectItem value="expired" className="font-mono rounded-none">EXPIRED</SelectItem>
-                  <SelectItem value="invalid" className="font-mono rounded-none">INVALID</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage className="font-mono text-xs" />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="note"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                Note <span className="opacity-50">(optional)</span>
-              </FormLabel>
-              <FormControl>
-                <Textarea placeholder="Ghi chu..." className="resize-none rounded-none font-mono min-h-[60px]" {...field} />
-              </FormControl>
-              <FormMessage className="font-mono text-xs" />
-            </FormItem>
-          )}
-        />
-
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel} className="rounded-none font-mono">
-            Huy
-          </Button>
-          <Button type="submit" disabled={isPending} className="rounded-none font-mono flex items-center gap-2">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isEdit ? "Luu thay doi" : "Them Token"}
-          </Button>
-        </div>
-      </form>
-    </Form>
   );
 }

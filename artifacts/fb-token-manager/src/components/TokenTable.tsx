@@ -7,6 +7,7 @@ import { Copy, Edit2, Trash2, CheckCircle2 } from "lucide-react";
 import { TokenFormModal } from "./TokenFormModal";
 import { TokenDeleteAlert } from "./TokenDeleteAlert";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/lib/lang-context";
 import type { FbToken } from "@workspace/api-client-react/src/generated/api.schemas";
 import { format } from "date-fns";
 
@@ -37,7 +38,7 @@ function CopyCell({ value, isCopied, onCopy }: { value: string; isCopied: boolea
   );
 }
 
-function StatusBadge({ status }: { status: "active" | "expired" | "invalid" }) {
+function StatusBadge({ status, label }: { status: "active" | "expired" | "invalid"; label: string }) {
   const styles: Record<string, string> = {
     active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
     expired: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
@@ -45,14 +46,15 @@ function StatusBadge({ status }: { status: "active" | "expired" | "invalid" }) {
   };
 
   return (
-    <Badge variant="outline" className={`text-xs font-medium capitalize rounded-full px-2.5 py-0.5 border ${styles[status]}`}>
-      {status}
+    <Badge variant="outline" className={`text-xs font-medium rounded-full px-2.5 py-0.5 border ${styles[status]}`}>
+      {label}
     </Badge>
   );
 }
 
 export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
   const { toast } = useToast();
+  const { t } = useLang();
   const [copiedId, setCopiedId] = useState<{ id: number; field: "token" | "cookie" } | null>(null);
   const [editingToken, setEditingToken] = useState<FbToken | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -70,14 +72,23 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
   const handleCopy = (id: number, value: string, field: "token" | "cookie") => {
     navigator.clipboard.writeText(value);
     setCopiedId({ id, field });
-    toast({ title: `${field === "token" ? "Token" : "Cookie"} copied`, description: "Copied to clipboard." });
+    toast({
+      title: field === "token" ? t.copiedToken : t.copiedCookie,
+      description: t.copiedDesc,
+    });
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const statusLabel = (status: "active" | "expired" | "invalid") => {
+    if (status === "active") return t.statusActive;
+    if (status === "expired") return t.statusExpired;
+    return t.statusInvalid;
   };
 
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground text-sm animate-pulse">
-        Loading tokens...
+        {t.loading}
       </div>
     );
   }
@@ -85,7 +96,7 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
   if (!tokens || tokens.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card p-12 text-center">
-        <p className="text-muted-foreground text-sm">No tokens found.</p>
+        <p className="text-muted-foreground text-sm">{t.noTokens}</p>
       </div>
     );
   }
@@ -96,14 +107,14 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
-              <TableHead className="w-[50px] text-xs font-semibold text-muted-foreground">ID</TableHead>
-              <TableHead className="text-xs font-semibold text-muted-foreground">FB ID</TableHead>
-              <TableHead className="text-xs font-semibold text-muted-foreground">Token</TableHead>
-              <TableHead className="text-xs font-semibold text-muted-foreground">Cookie</TableHead>
-              <TableHead className="w-[100px] text-xs font-semibold text-muted-foreground">Status</TableHead>
-              <TableHead className="text-xs font-semibold text-muted-foreground">Note</TableHead>
-              <TableHead className="text-xs font-semibold text-muted-foreground">Created</TableHead>
-              <TableHead className="text-right text-xs font-semibold text-muted-foreground">Actions</TableHead>
+              <TableHead className="w-[50px] text-xs font-semibold text-muted-foreground">{t.colId}</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">{t.colFbId}</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">{t.colToken}</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">{t.colCookie}</TableHead>
+              <TableHead className="w-[110px] text-xs font-semibold text-muted-foreground">{t.colStatus}</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">{t.colNote}</TableHead>
+              <TableHead className="text-xs font-semibold text-muted-foreground">{t.colCreated}</TableHead>
+              <TableHead className="text-right text-xs font-semibold text-muted-foreground">{t.colActions}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -126,11 +137,11 @@ export function TokenTable({ statusFilter, searchFilter }: TokenTableProps) {
                       onCopy={() => handleCopy(token.id, token.cookie!, "cookie")}
                     />
                   ) : (
-                    <span className="text-xs text-muted-foreground/40 italic">none</span>
+                    <span className="text-xs text-muted-foreground/40 italic">—</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={token.status} />
+                  <StatusBadge status={token.status} label={statusLabel(token.status)} />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate" title={token.note || ""}>
                   {token.note || <span className="italic text-muted-foreground/40">—</span>}

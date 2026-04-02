@@ -1,7 +1,9 @@
 import { useGetTokenStats, getGetTokenStatsQueryKey } from "@workspace/api-client-react";
 import { Database, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { useLang } from "@/lib/lang-context";
 
 export function TokenStats() {
+  const { t } = useLang();
   const { data: stats, isLoading } = useGetTokenStats({
     query: { queryKey: getGetTokenStatsQueryKey() }
   });
@@ -22,27 +24,27 @@ export function TokenStats() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <StatCard
-        title="Total Tokens"
+        title={t.totalTokens}
         value={stats?.total ?? 0}
         icon={<Database className="w-4 h-4" />}
         iconBg="bg-primary/10 text-primary"
       />
       <StatCard
-        title="Active"
+        title={t.active}
         value={stats?.active ?? 0}
         icon={<CheckCircle2 className="w-4 h-4" />}
         iconBg="bg-emerald-500/10 text-emerald-500"
         valueColor="text-emerald-500"
       />
       <StatCard
-        title="Expired"
+        title={t.expired}
         value={stats?.expired ?? 0}
         icon={<Clock className="w-4 h-4" />}
         iconBg="bg-amber-500/10 text-amber-500"
         valueColor="text-amber-500"
       />
       <StatCard
-        title="Invalid"
+        title={t.invalid}
         value={stats?.invalid ?? 0}
         icon={<AlertTriangle className="w-4 h-4" />}
         iconBg="bg-destructive/10 text-destructive"

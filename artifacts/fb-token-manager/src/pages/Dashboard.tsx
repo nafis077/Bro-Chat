@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KeyRound, Plus, Search, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useLang } from "@/lib/lang-context";
 
 export function Dashboard() {
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const { theme, toggle } = useTheme();
+  const { theme, toggle: toggleTheme } = useTheme();
+  const { lang, t, toggle: toggleLang } = useLang();
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
@@ -23,27 +25,40 @@ export function Dashboard() {
               <KeyRound className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-semibold text-base leading-none tracking-tight">Token Manager</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Facebook token vault</p>
+              <h1 className="font-semibold text-base leading-none tracking-tight">{t.appName}</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">{t.appSubtitle}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
+              size="sm"
+              onClick={toggleLang}
+              className="rounded-lg h-9 px-3 text-sm font-semibold text-muted-foreground hover:text-foreground gap-1.5 min-w-[52px]"
+              aria-label="Toggle language"
+            >
+              <span className={lang === "en" ? "text-primary font-bold" : "opacity-50"}>EN</span>
+              <span className="text-border">|</span>
+              <span className={lang === "vi" ? "text-primary font-bold" : "opacity-50"}>VN</span>
+            </Button>
+
+            <Button
+              variant="ghost"
               size="icon"
-              onClick={toggle}
+              onClick={toggleTheme}
               className="rounded-lg h-9 w-9 text-muted-foreground hover:text-foreground"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
+
             <Button
               onClick={() => setIsAddModalOpen(true)}
               className="rounded-lg gap-2 font-medium text-sm h-9 px-4"
             >
               <Plus className="w-4 h-4" />
-              Add Token
+              {t.addToken}
             </Button>
           </div>
         </div>
@@ -55,15 +70,15 @@ export function Dashboard() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight">Token Registry</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">Manage and monitor your Facebook tokens</p>
+              <h2 className="text-xl font-semibold tracking-tight">{t.tokenRegistry}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t.tokenRegistryDesc}</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder="Search by FB ID..."
+                  placeholder={t.searchPlaceholder}
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
                   className="pl-9 rounded-lg bg-card h-9 text-sm"
@@ -71,14 +86,14 @@ export function Dashboard() {
               </div>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-36 rounded-lg bg-card h-9 text-sm">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="w-full sm:w-40 rounded-lg bg-card h-9 text-sm">
+                  <SelectValue placeholder={t.allStatus} />
                 </SelectTrigger>
                 <SelectContent className="rounded-lg">
-                  <SelectItem value="all">All status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                  <SelectItem value="invalid">Invalid</SelectItem>
+                  <SelectItem value="all">{t.allStatus}</SelectItem>
+                  <SelectItem value="active">{t.statusActive}</SelectItem>
+                  <SelectItem value="expired">{t.statusExpired}</SelectItem>
+                  <SelectItem value="invalid">{t.statusInvalid}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
