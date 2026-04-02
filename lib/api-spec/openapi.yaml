@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: tokens
+    description: Facebook token management
 paths:
   /healthz:
     get:
@@ -24,6 +26,123 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /tokens:
+    get:
+      operationId: listTokens
+      tags: [tokens]
+      summary: List all FB tokens
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, expired, invalid]
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of tokens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FbToken"
+    post:
+      operationId: createToken
+      tags: [tokens]
+      summary: Create a new FB token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFbTokenBody"
+      responses:
+        "201":
+          description: Created token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FbToken"
+
+  /tokens/stats:
+    get:
+      operationId: getTokenStats
+      tags: [tokens]
+      summary: Get token statistics
+      responses:
+        "200":
+          description: Token stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenStats"
+
+  /tokens/{id}:
+    get:
+      operationId: getToken
+      tags: [tokens]
+      summary: Get a single token by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FbToken"
+        "404":
+          description: Not found
+    put:
+      operationId: updateToken
+      tags: [tokens]
+      summary: Update a FB token
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFbTokenBody"
+      responses:
+        "200":
+          description: Updated token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FbToken"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteToken
+      tags: [tokens]
+      summary: Delete a FB token
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +153,80 @@ components:
       required:
         - status
 
+    FbToken:
+      type: object
+      properties:
+        id:
+          type: integer
+        fbId:
+          type: string
+        token:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, invalid]
+        note:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - fbId
+        - token
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateFbTokenBody:
+      type: object
+      properties:
+        fbId:
+          type: string
+        token:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, invalid]
+        note:
+          type: string
+          nullable: true
+      required:
+        - fbId
+        - token
+        - status
+
+    UpdateFbTokenBody:
+      type: object
+      properties:
+        fbId:
+          type: string
+        token:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, invalid]
+        note:
+          type: string
+          nullable: true
+
+    TokenStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        active:
+          type: integer
+        expired:
+          type: integer
+        invalid:
+          type: integer
+      required:
+        - total
+        - active
+        - expired
+        - invalid

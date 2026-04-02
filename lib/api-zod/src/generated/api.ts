@@ -14,3 +14,90 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all FB tokens
+ */
+export const ListTokensQueryParams = zod.object({
+  status: zod.enum(["active", "expired", "invalid"]).optional(),
+  search: zod.coerce.string().optional(),
+});
+
+export const ListTokensResponseItem = zod.object({
+  id: zod.number(),
+  fbId: zod.string(),
+  token: zod.string(),
+  status: zod.enum(["active", "expired", "invalid"]),
+  note: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListTokensResponse = zod.array(ListTokensResponseItem);
+
+/**
+ * @summary Create a new FB token
+ */
+export const CreateTokenBody = zod.object({
+  fbId: zod.string(),
+  token: zod.string(),
+  status: zod.enum(["active", "expired", "invalid"]),
+  note: zod.string().nullish(),
+});
+
+/**
+ * @summary Get token statistics
+ */
+export const GetTokenStatsResponse = zod.object({
+  total: zod.number(),
+  active: zod.number(),
+  expired: zod.number(),
+  invalid: zod.number(),
+});
+
+/**
+ * @summary Get a single token by ID
+ */
+export const GetTokenParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetTokenResponse = zod.object({
+  id: zod.number(),
+  fbId: zod.string(),
+  token: zod.string(),
+  status: zod.enum(["active", "expired", "invalid"]),
+  note: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Update a FB token
+ */
+export const UpdateTokenParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateTokenBody = zod.object({
+  fbId: zod.string().optional(),
+  token: zod.string().optional(),
+  status: zod.enum(["active", "expired", "invalid"]).optional(),
+  note: zod.string().nullish(),
+});
+
+export const UpdateTokenResponse = zod.object({
+  id: zod.number(),
+  fbId: zod.string(),
+  token: zod.string(),
+  status: zod.enum(["active", "expired", "invalid"]),
+  note: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Delete a FB token
+ */
+export const DeleteTokenParams = zod.object({
+  id: zod.coerce.number(),
+});

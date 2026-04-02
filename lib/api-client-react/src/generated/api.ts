@@ -5,18 +5,28 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  CreateFbTokenBody,
+  FbToken,
+  HealthStatus,
+  ListTokensParams,
+  TokenStats,
+  UpdateFbTokenBody,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +109,514 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List all FB tokens
+ */
+export const getListTokensUrl = (params?: ListTokensParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tokens?${stringifiedParams}`
+    : `/api/tokens`;
+};
+
+export const listTokens = async (
+  params?: ListTokensParams,
+  options?: RequestInit,
+): Promise<FbToken[]> => {
+  return customFetch<FbToken[]>(getListTokensUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTokensQueryKey = (params?: ListTokensParams) => {
+  return [`/api/tokens`, ...(params ? [params] : [])] as const;
+};
+
+export const getListTokensQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTokens>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTokensParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTokens>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListTokensQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listTokens>>> = ({
+    signal,
+  }) => listTokens(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTokens>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTokensQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTokens>>
+>;
+export type ListTokensQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all FB tokens
+ */
+
+export function useListTokens<
+  TData = Awaited<ReturnType<typeof listTokens>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListTokensParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTokens>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTokensQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new FB token
+ */
+export const getCreateTokenUrl = () => {
+  return `/api/tokens`;
+};
+
+export const createToken = async (
+  createFbTokenBody: CreateFbTokenBody,
+  options?: RequestInit,
+): Promise<FbToken> => {
+  return customFetch<FbToken>(getCreateTokenUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createFbTokenBody),
+  });
+};
+
+export const getCreateTokenMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createToken>>,
+    TError,
+    { data: BodyType<CreateFbTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createToken>>,
+  TError,
+  { data: BodyType<CreateFbTokenBody> },
+  TContext
+> => {
+  const mutationKey = ["createToken"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createToken>>,
+    { data: BodyType<CreateFbTokenBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createToken(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createToken>>
+>;
+export type CreateTokenMutationBody = BodyType<CreateFbTokenBody>;
+export type CreateTokenMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new FB token
+ */
+export const useCreateToken = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createToken>>,
+    TError,
+    { data: BodyType<CreateFbTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createToken>>,
+  TError,
+  { data: BodyType<CreateFbTokenBody> },
+  TContext
+> => {
+  return useMutation(getCreateTokenMutationOptions(options));
+};
+
+/**
+ * @summary Get token statistics
+ */
+export const getGetTokenStatsUrl = () => {
+  return `/api/tokens/stats`;
+};
+
+export const getTokenStats = async (
+  options?: RequestInit,
+): Promise<TokenStats> => {
+  return customFetch<TokenStats>(getGetTokenStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTokenStatsQueryKey = () => {
+  return [`/api/tokens/stats`] as const;
+};
+
+export const getGetTokenStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTokenStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTokenStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTokenStatsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTokenStats>>> = ({
+    signal,
+  }) => getTokenStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTokenStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTokenStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTokenStats>>
+>;
+export type GetTokenStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get token statistics
+ */
+
+export function useGetTokenStats<
+  TData = Awaited<ReturnType<typeof getTokenStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTokenStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTokenStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a single token by ID
+ */
+export const getGetTokenUrl = (id: number) => {
+  return `/api/tokens/${id}`;
+};
+
+export const getToken = async (
+  id: number,
+  options?: RequestInit,
+): Promise<FbToken> => {
+  return customFetch<FbToken>(getGetTokenUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTokenQueryKey = (id: number) => {
+  return [`/api/tokens/${id}`] as const;
+};
+
+export const getGetTokenQueryOptions = <
+  TData = Awaited<ReturnType<typeof getToken>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getToken>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTokenQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getToken>>> = ({
+    signal,
+  }) => getToken(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getToken>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetTokenQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getToken>>
+>;
+export type GetTokenQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a single token by ID
+ */
+
+export function useGetToken<
+  TData = Awaited<ReturnType<typeof getToken>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getToken>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTokenQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a FB token
+ */
+export const getUpdateTokenUrl = (id: number) => {
+  return `/api/tokens/${id}`;
+};
+
+export const updateToken = async (
+  id: number,
+  updateFbTokenBody: UpdateFbTokenBody,
+  options?: RequestInit,
+): Promise<FbToken> => {
+  return customFetch<FbToken>(getUpdateTokenUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateFbTokenBody),
+  });
+};
+
+export const getUpdateTokenMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateToken>>,
+    TError,
+    { id: number; data: BodyType<UpdateFbTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateToken>>,
+  TError,
+  { id: number; data: BodyType<UpdateFbTokenBody> },
+  TContext
+> => {
+  const mutationKey = ["updateToken"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateToken>>,
+    { id: number; data: BodyType<UpdateFbTokenBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateToken(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateToken>>
+>;
+export type UpdateTokenMutationBody = BodyType<UpdateFbTokenBody>;
+export type UpdateTokenMutationError = ErrorType<void>;
+
+/**
+ * @summary Update a FB token
+ */
+export const useUpdateToken = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateToken>>,
+    TError,
+    { id: number; data: BodyType<UpdateFbTokenBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateToken>>,
+  TError,
+  { id: number; data: BodyType<UpdateFbTokenBody> },
+  TContext
+> => {
+  return useMutation(getUpdateTokenMutationOptions(options));
+};
+
+/**
+ * @summary Delete a FB token
+ */
+export const getDeleteTokenUrl = (id: number) => {
+  return `/api/tokens/${id}`;
+};
+
+export const deleteToken = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteTokenUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTokenMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteToken>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteToken>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteToken"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteToken>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteToken(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTokenMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteToken>>
+>;
+
+export type DeleteTokenMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a FB token
+ */
+export const useDeleteToken = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteToken>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteToken>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteTokenMutationOptions(options));
+};

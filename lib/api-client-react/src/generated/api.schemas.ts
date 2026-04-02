@@ -8,3 +8,74 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type FbTokenStatus = (typeof FbTokenStatus)[keyof typeof FbTokenStatus];
+
+export const FbTokenStatus = {
+  active: "active",
+  expired: "expired",
+  invalid: "invalid",
+} as const;
+
+export interface FbToken {
+  id: number;
+  fbId: string;
+  token: string;
+  status: FbTokenStatus;
+  note?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateFbTokenBodyStatus =
+  (typeof CreateFbTokenBodyStatus)[keyof typeof CreateFbTokenBodyStatus];
+
+export const CreateFbTokenBodyStatus = {
+  active: "active",
+  expired: "expired",
+  invalid: "invalid",
+} as const;
+
+export interface CreateFbTokenBody {
+  fbId: string;
+  token: string;
+  status: CreateFbTokenBodyStatus;
+  note?: string | null;
+}
+
+export type UpdateFbTokenBodyStatus =
+  (typeof UpdateFbTokenBodyStatus)[keyof typeof UpdateFbTokenBodyStatus];
+
+export const UpdateFbTokenBodyStatus = {
+  active: "active",
+  expired: "expired",
+  invalid: "invalid",
+} as const;
+
+export interface UpdateFbTokenBody {
+  fbId?: string;
+  token?: string;
+  status?: UpdateFbTokenBodyStatus;
+  note?: string | null;
+}
+
+export interface TokenStats {
+  total: number;
+  active: number;
+  expired: number;
+  invalid: number;
+}
+
+export type ListTokensParams = {
+  status?: ListTokensStatus;
+  search?: string;
+};
+
+export type ListTokensStatus =
+  (typeof ListTokensStatus)[keyof typeof ListTokensStatus];
+
+export const ListTokensStatus = {
+  active: "active",
+  expired: "expired",
+  invalid: "invalid",
+} as const;
