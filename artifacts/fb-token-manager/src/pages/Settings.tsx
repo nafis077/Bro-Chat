@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/hooks/use-toast";
 import { getListTokensQueryKey, getGetTokenStatsQueryKey, useListTokens } from "@workspace/api-client-react";
-import { Sun, Moon, Download, Trash2, Loader2, Languages, Rows3, Palette, RefreshCw, Timer, Shuffle, Hash, SkipForward, AlertTriangle } from "lucide-react";
+import { Sun, Moon, Download, Trash2, Loader2, Languages, Rows3, Palette, RefreshCw, Timer, Shuffle, Hash, SkipForward, AlertTriangle, Pencil, Check } from "lucide-react";
 
 const ROTATION_KEY = "tkm_rotation";
 
@@ -71,6 +71,121 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
         }`}
       />
     </button>
+  );
+}
+
+interface PresetOption {
+  value: string;
+  label: string;
+}
+
+function SelectWithCustom({
+  value,
+  onChange,
+  presets,
+  unit,
+  min,
+  max,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  presets: PresetOption[];
+  unit?: string;
+  min?: number;
+  max?: number;
+  placeholder?: string;
+}) {
+  const isPreset = presets.some((p) => p.value === value);
+  const [customMode, setCustomMode] = useState(!isPreset);
+  const [inputVal, setInputVal] = useState(isPreset ? "" : value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (customMode && inputRef.current) inputRef.current.focus();
+  }, [customMode]);
+
+  const commit = () => {
+    const n = parseInt(inputVal, 10);
+    if (!isNaN(n) && n >= (min ?? 0)) {
+      onChange(String(n));
+      setCustomMode(false);
+      setInputVal("");
+    } else {
+      setInputVal(value);
+    }
+  };
+
+  const handleSelectChange = (v: string) => {
+    if (v === "__custom__") {
+      setCustomMode(true);
+      setInputVal(value);
+    } else {
+      setCustomMode(false);
+      setInputVal("");
+      onChange(v);
+    }
+  };
+
+  const displayValue = customMode ? "__custom__" : value;
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={displayValue} onValueChange={handleSelectChange}>
+        <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[110px]">
+          <SelectValue>
+            {customMode ? (
+              <span className="text-muted-foreground text-xs italic">Custom…</span>
+            ) : (
+              presets.find((p) => p.value === value)?.label ?? value
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="rounded-lg text-sm">
+          {presets.map((p) => (
+            <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+          ))}
+          <SelectItem value="__custom__">
+            <span className="flex items-center gap-1.5 text-primary">
+              <Pencil className="w-3 h-3" />
+              Custom…
+            </span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
+
+      {customMode && (
+        <div className="flex items-center gap-1">
+          <div className="relative flex items-center">
+            <input
+              ref={inputRef}
+              type="number"
+              min={min ?? 0}
+              max={max}
+              value={inputVal}
+              placeholder={placeholder ?? "0"}
+              onChange={(e) => setInputVal(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { commit(); inputRef.current?.blur(); }
+                if (e.key === "Escape") { setCustomMode(false); setInputVal(""); }
+              }}
+              onBlur={commit}
+              className="h-9 w-20 rounded-lg border border-border bg-background px-2 text-sm text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {unit && (
+              <span className="absolute right-2 text-xs text-muted-foreground pointer-events-none">{unit}</span>
+            )}
+          </div>
+          <button
+            onClick={() => { commit(); setCustomMode(false); }}
+            className="h-7 w-7 rounded-md bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-colors"
+            title="Apply"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -306,18 +421,19 @@ export function Settings() {
           label={t.rotationMaxConcurrent}
           desc={t.rotationMaxConcurrentDesc}
         >
-          <Select value={rotation.maxConcurrent} onValueChange={(v) => updateRotation({ maxConcurrent: v })}>
-            <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[110px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg text-sm">
-              <SelectItem value="1">1</SelectItem>
-              <SelectItem value="2">2</SelectItem>
-              <SelectItem value="5">5</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="0">{t.unlimited}</SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectWithCustom
+            value={rotation.maxConcurrent}
+            onChange={(v) => updateRotation({ maxConcurrent: v })}
+            min={0}
+            presets={[
+              { value: "1", label: "1" },
+              { value: "2", label: "2" },
+              { value: "5", label: "5" },
+              { value: "10", label: "10" },
+              { value: "0", label: t.unlimited },
+            ]}
+            placeholder="e.g. 3"
+          />
         </SettingRow>
 
         {/* Cooldown */}
@@ -326,21 +442,23 @@ export function Settings() {
           label={t.rotationCooldown}
           desc={t.rotationCooldownDesc}
         >
-          <Select value={rotation.cooldownSec} onValueChange={(v) => updateRotation({ cooldownSec: v })}>
-            <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[110px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg text-sm">
-              <SelectItem value="0">{t.sec(0)}</SelectItem>
-              <SelectItem value="10">{t.sec(10)}</SelectItem>
-              <SelectItem value="30">{t.sec(30)}</SelectItem>
-              <SelectItem value="60">{t.min(1)}</SelectItem>
-              <SelectItem value="300">{t.min(5)}</SelectItem>
-              <SelectItem value="600">{t.min(10)}</SelectItem>
-              <SelectItem value="1800">{t.min(30)}</SelectItem>
-              <SelectItem value="3600">{t.hour("1")}</SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectWithCustom
+            value={rotation.cooldownSec}
+            onChange={(v) => updateRotation({ cooldownSec: v })}
+            min={0}
+            unit="s"
+            presets={[
+              { value: "0", label: t.sec(0) },
+              { value: "10", label: t.sec(10) },
+              { value: "30", label: t.sec(30) },
+              { value: "60", label: t.min(1) },
+              { value: "300", label: t.min(5) },
+              { value: "600", label: t.min(10) },
+              { value: "1800", label: t.min(30) },
+              { value: "3600", label: t.hour("1") },
+            ]}
+            placeholder="giây"
+          />
         </SettingRow>
 
         {/* Rotation mode */}
@@ -367,19 +485,20 @@ export function Settings() {
           label={t.rotationMaxRequests}
           desc={t.rotationMaxRequestsDesc}
         >
-          <Select value={rotation.maxRequests} onValueChange={(v) => updateRotation({ maxRequests: v })}>
-            <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[110px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-lg text-sm">
-              <SelectItem value="0">{t.unlimited}</SelectItem>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-              <SelectItem value="500">500</SelectItem>
-              <SelectItem value="1000">1000</SelectItem>
-            </SelectContent>
-          </Select>
+          <SelectWithCustom
+            value={rotation.maxRequests}
+            onChange={(v) => updateRotation({ maxRequests: v })}
+            min={0}
+            presets={[
+              { value: "0", label: t.unlimited },
+              { value: "10", label: "10" },
+              { value: "50", label: "50" },
+              { value: "100", label: "100" },
+              { value: "500", label: "500" },
+              { value: "1000", label: "1000" },
+            ]}
+            placeholder="e.g. 200"
+          />
         </SettingRow>
 
         {/* Skip invalid */}
