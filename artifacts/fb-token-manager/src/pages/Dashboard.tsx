@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { TokenStats } from "@/components/TokenStats";
 import { TokenTable } from "@/components/TokenTable";
 import { TokenFormModal } from "@/components/TokenFormModal";
+import { Settings } from "@/pages/Settings";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,13 +23,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { KeyRound, Plus, Search, Sun, Moon, Trash2, Loader2 } from "lucide-react";
+import { KeyRound, Plus, Search, Sun, Moon, Trash2, Loader2, LayoutList, Settings2 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/hooks/use-toast";
 import { getListTokensQueryKey, getGetTokenStatsQueryKey } from "@workspace/api-client-react";
 
+type Tab = "tokens" | "settings";
+
 export function Dashboard() {
+  const [activeTab, setActiveTab] = useState<Tab>("tokens");
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -93,64 +97,100 @@ export function Dashboard() {
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </Button>
 
-            <Button
-              onClick={() => setIsAddModalOpen(true)}
-              className="rounded-lg gap-2 font-medium text-sm h-9 px-4"
+            {activeTab === "tokens" && (
+              <Button
+                onClick={() => setIsAddModalOpen(true)}
+                className="rounded-lg gap-2 font-medium text-sm h-9 px-4"
+              >
+                <Plus className="w-4 h-4" />
+                {t.addToken}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Tab navigation */}
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center gap-1 -mb-px">
+            <button
+              onClick={() => setActiveTab("tokens")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "tokens"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+              }`}
             >
-              <Plus className="w-4 h-4" />
-              {t.addToken}
-            </Button>
+              <LayoutList className="w-4 h-4" />
+              {t.tabTokens}
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "settings"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+              }`}
+            >
+              <Settings2 className="w-4 h-4" />
+              {t.tabSettings}
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full space-y-8">
-        <TokenStats />
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
+        {activeTab === "settings" ? (
+          <Settings />
+        ) : (
+          <div className="space-y-8">
+            <TokenStats />
 
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">{t.tokenRegistry}</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">{t.tokenRegistryDesc}</p>
-            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold tracking-tight">{t.tokenRegistry}</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">{t.tokenRegistryDesc}</p>
+                </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  placeholder={t.searchPlaceholder}
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  className="pl-9 rounded-lg bg-card h-9 text-sm"
-                />
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      placeholder={t.searchPlaceholder}
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      className="pl-9 rounded-lg bg-card h-9 text-sm"
+                    />
+                  </div>
+
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-40 rounded-lg bg-card h-9 text-sm">
+                      <SelectValue placeholder={t.allStatus} />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg">
+                      <SelectItem value="all">{t.allStatus}</SelectItem>
+                      <SelectItem value="active">{t.statusActive}</SelectItem>
+                      <SelectItem value="expired">{t.statusExpired}</SelectItem>
+                      <SelectItem value="invalid">{t.statusInvalid}</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 rounded-lg text-xs px-3 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5 hover:border-destructive/50 whitespace-nowrap"
+                    onClick={() => setDeleteAllOpen(true)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {t.bulkDeleteAll}
+                  </Button>
+                </div>
               </div>
 
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40 rounded-lg bg-card h-9 text-sm">
-                  <SelectValue placeholder={t.allStatus} />
-                </SelectTrigger>
-                <SelectContent className="rounded-lg">
-                  <SelectItem value="all">{t.allStatus}</SelectItem>
-                  <SelectItem value="active">{t.statusActive}</SelectItem>
-                  <SelectItem value="expired">{t.statusExpired}</SelectItem>
-                  <SelectItem value="invalid">{t.statusInvalid}</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 rounded-lg text-xs px-3 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5 hover:border-destructive/50 whitespace-nowrap"
-                onClick={() => setDeleteAllOpen(true)}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                {t.bulkDeleteAll}
-              </Button>
+              <TokenTable searchFilter={searchFilter} statusFilter={statusFilter} />
             </div>
           </div>
-
-          <TokenTable searchFilter={searchFilter} statusFilter={statusFilter} />
-        </div>
+        )}
       </main>
 
       {isAddModalOpen && (

@@ -137,6 +137,33 @@ export const translations = {
     pageNext: "Next page",
     pageFirst: "First page",
     pageLast: "Last page",
+
+    // Navigation tabs
+    tabTokens: "Tokens",
+    tabSettings: "Settings",
+
+    // Settings page
+    settingsTitle: "Settings",
+    settingsDesc: "Manage your app preferences and data.",
+    sectionAppearance: "Appearance",
+    sectionAppearanceDesc: "Customize the look and feel.",
+    settingLanguage: "Language",
+    settingLanguageDesc: "Switch between English and Vietnamese.",
+    settingTheme: "Theme",
+    settingThemeDesc: "Choose between light and dark mode.",
+    themeLight: "Light",
+    themeDark: "Dark",
+    settingDefaultRows: "Default rows per page",
+    settingDefaultRowsDesc: "Number of tokens shown per page by default.",
+    sectionData: "Data Management",
+    sectionDataDesc: "Export or clear your token data.",
+    exportCsv: "Export as CSV",
+    exportCsvDesc: "Download all tokens as a CSV file.",
+    exportBtn: "Download CSV",
+    dangerZone: "Danger Zone",
+    dangerZoneDesc: "Irreversible actions. Be careful.",
+    clearAllBtn: "Delete All Tokens",
+    clearAllDesc: "Permanently delete all tokens from the database. This cannot be undone.",
   },
 
   vi: {
@@ -275,6 +302,33 @@ export const translations = {
     pageNext: "Trang sau",
     pageFirst: "Trang đầu",
     pageLast: "Trang cuối",
+
+    // Navigation tabs
+    tabTokens: "Token",
+    tabSettings: "Cài đặt",
+
+    // Settings page
+    settingsTitle: "Cài đặt",
+    settingsDesc: "Quản lý tuỳ chọn và dữ liệu của bạn.",
+    sectionAppearance: "Giao diện",
+    sectionAppearanceDesc: "Tuỳ chỉnh giao diện ứng dụng.",
+    settingLanguage: "Ngôn ngữ",
+    settingLanguageDesc: "Chuyển đổi giữa Tiếng Anh và Tiếng Việt.",
+    settingTheme: "Chủ đề",
+    settingThemeDesc: "Chọn giao diện sáng hoặc tối.",
+    themeLight: "Sáng",
+    themeDark: "Tối",
+    settingDefaultRows: "Số dòng mặc định mỗi trang",
+    settingDefaultRowsDesc: "Số lượng token hiển thị mỗi trang theo mặc định.",
+    sectionData: "Quản lý dữ liệu",
+    sectionDataDesc: "Xuất hoặc xóa dữ liệu token của bạn.",
+    exportCsv: "Xuất ra CSV",
+    exportCsvDesc: "Tải toàn bộ token xuống dưới dạng file CSV.",
+    exportBtn: "Tải CSV",
+    dangerZone: "Vùng nguy hiểm",
+    dangerZoneDesc: "Các thao tác không thể hoàn tác. Cẩn thận.",
+    clearAllBtn: "Xóa tất cả Token",
+    clearAllDesc: "Xóa vĩnh viễn toàn bộ token trong cơ sở dữ liệu. Không thể hoàn tác.",
   },
 } as const;
 
