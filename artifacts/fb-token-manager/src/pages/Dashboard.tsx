@@ -1,20 +1,60 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { TokenStats } from "@/components/TokenStats";
 import { TokenTable } from "@/components/TokenTable";
 import { TokenFormModal } from "@/components/TokenFormModal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { KeyRound, Plus, Search, Sun, Moon } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { KeyRound, Plus, Search, Sun, Moon, Trash2, Loader2 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useLang } from "@/lib/lang-context";
+import { useToast } from "@/hooks/use-toast";
+import { getListTokensQueryKey, getGetTokenStatsQueryKey } from "@workspace/api-client-react";
 
 export function Dashboard() {
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deleteAllPending, setDeleteAllPending] = useState(false);
+
   const { theme, toggle: toggleTheme } = useTheme();
   const { lang, t, toggle: toggleLang } = useLang();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const handleDeleteAll = async () => {
+    setDeleteAllPending(true);
+    try {
+      const res = await fetch("/api/tokens", { method: "DELETE" });
+      if (!res.ok && res.status !== 204) throw new Error(`HTTP ${res.status}`);
+      queryClient.invalidateQueries({ queryKey: getListTokensQueryKey() });
+      queryClient.invalidateQueries({ queryKey: getGetTokenStatsQueryKey() });
+      toast({ title: t.toastDeleteAll, description: t.toastDeleteAllDesc });
+      setDeleteAllOpen(false);
+    } catch {
+      toast({ title: t.toastBulkError, description: t.toastBulkErrorDesc, variant: "destructive" });
+    } finally {
+      setDeleteAllPending(false);
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
@@ -96,6 +136,16 @@ export function Dashboard() {
                   <SelectItem value="invalid">{t.statusInvalid}</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-lg text-xs px-3 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/5 hover:border-destructive/50 whitespace-nowrap"
+                onClick={() => setDeleteAllOpen(true)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {t.bulkDeleteAll}
+              </Button>
             </div>
           </div>
 
@@ -106,6 +156,29 @@ export function Dashboard() {
       {isAddModalOpen && (
         <TokenFormModal isOpen={isAddModalOpen} onOpenChange={setIsAddModalOpen} />
       )}
+
+      <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <AlertDialogContent className="rounded-xl border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-semibold">{t.bulkDeleteAllTitle}</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              {t.bulkDeleteAllDesc}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-lg" disabled={deleteAllPending}>{t.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-lg bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              onClick={handleDeleteAll}
+              disabled={deleteAllPending}
+            >
+              {deleteAllPending ? (
+                <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />{t.applying}</span>
+              ) : t.confirmDelete}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

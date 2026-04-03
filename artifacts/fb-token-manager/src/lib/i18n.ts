@@ -81,6 +81,32 @@ export const translations = {
     deleteBtn: "Delete",
     deleting: "Deleting...",
 
+    // Bulk operations
+    selectedCount: (n: number) => `${n} selected`,
+    clearSelection: "Clear",
+    bulkChangeStatus: "Set status",
+    bulkDeleteSelected: "Delete selected",
+    bulkDeleteAll: "Delete all",
+
+    bulkStatusTitle: "Change Status",
+    bulkStatusDesc: (n: number) => `Change status for ${n} selected token${n !== 1 ? "s" : ""}`,
+    bulkDeleteTitle: "Delete Selected",
+    bulkDeleteDesc: (n: number) =>
+      `Delete ${n} selected token${n !== 1 ? "s" : ""}? This cannot be undone.`,
+    bulkDeleteAllTitle: "Delete All Tokens",
+    bulkDeleteAllDesc: "This will permanently delete ALL tokens in the system. This cannot be undone.",
+    confirmDelete: "Delete",
+    applying: "Applying...",
+
+    toastBulkStatusUpdated: "Status updated",
+    toastBulkStatusUpdatedDesc: (n: number) => `Updated status for ${n} token${n !== 1 ? "s" : ""}.`,
+    toastBulkDeleted: "Tokens deleted",
+    toastBulkDeletedDesc: (n: number) => `${n} token${n !== 1 ? "s" : ""} deleted.`,
+    toastDeleteAll: "All tokens deleted",
+    toastDeleteAllDesc: "All tokens have been removed.",
+    toastBulkError: "Operation failed",
+    toastBulkErrorDesc: "An error occurred. Please try again.",
+
     toastCreated: "Token created",
     toastCreatedDesc: "Token has been added successfully.",
     toastCreateError: "Error creating token",
@@ -183,6 +209,32 @@ export const translations = {
     deleteCancel: "Hủy",
     deleteBtn: "Xóa",
     deleting: "Đang xóa...",
+
+    // Bulk operations
+    selectedCount: (n: number) => `Đã chọn ${n}`,
+    clearSelection: "Bỏ chọn",
+    bulkChangeStatus: "Đổi trạng thái",
+    bulkDeleteSelected: "Xóa đã chọn",
+    bulkDeleteAll: "Xóa tất cả",
+
+    bulkStatusTitle: "Đổi trạng thái",
+    bulkStatusDesc: (n: number) => `Đổi trạng thái cho ${n} token đã chọn`,
+    bulkDeleteTitle: "Xóa đã chọn",
+    bulkDeleteDesc: (n: number) =>
+      `Xóa ${n} token đã chọn? Hành động này không thể hoàn tác.`,
+    bulkDeleteAllTitle: "Xóa tất cả Token",
+    bulkDeleteAllDesc: "Thao tác này sẽ xóa TOÀN BỘ token trong hệ thống. Không thể hoàn tác.",
+    confirmDelete: "Xóa",
+    applying: "Đang xử lý...",
+
+    toastBulkStatusUpdated: "Đã cập nhật trạng thái",
+    toastBulkStatusUpdatedDesc: (n: number) => `Đã cập nhật ${n} token.`,
+    toastBulkDeleted: "Đã xóa token",
+    toastBulkDeletedDesc: (n: number) => `Đã xóa ${n} token.`,
+    toastDeleteAll: "Đã xóa tất cả",
+    toastDeleteAllDesc: "Tất cả token đã được xóa.",
+    toastBulkError: "Thao tác thất bại",
+    toastBulkErrorDesc: "Đã xảy ra lỗi. Vui lòng thử lại.",
 
     toastCreated: "Đã tạo token",
     toastCreatedDesc: "Token đã được thêm thành công.",
