@@ -57,6 +57,12 @@ const LANG = {
     toastImported: "Import complete", toastImportedDesc: (ok, fail) => `${ok} imported${fail>0?`, ${fail} failed`:"."}.`,
     errFbId: "FB ID is required.",    errToken: "Token is required.",
     missingFbId: "Missing FB ID",     missingToken: "Missing token",
+    // Pagination
+    perPage: "Rows per page:",
+    allRows: "All",
+    pageInfo: (from, to, total) => `${from}–${to} of ${total}`,
+    pagePrev: "‹",  pageNext: "›",
+    pageFirst: "«", pageLast: "»",
   },
   vi: {
     appName: "Quản lý Token",         appSub: "Kho lưu token Facebook",
@@ -109,6 +115,12 @@ const LANG = {
     toastImported: "Nhập hoàn tất",   toastImportedDesc: (ok, fail) => `Đã nhập ${ok} token${fail>0?`, ${fail} thất bại`:""}.`,
     errFbId: "FB ID không được để trống.", errToken: "Token không được để trống.",
     missingFbId: "Thiếu FB ID",        missingToken: "Thiếu token",
+    // Pagination
+    perPage: "Số dòng mỗi trang:",
+    allRows: "Tất cả",
+    pageInfo: (from, to, total) => `${from}–${to} / ${total}`,
+    pagePrev: "‹",  pageNext: "›",
+    pageFirst: "«", pageLast: "»",
   }
 };
 
@@ -121,31 +133,34 @@ let state = {
   selectedIds: new Set(),
   editingId: null,
   parsedImport: [],    // Tokens parsed from file
-  confirmCallback: null
+  confirmCallback: null,
+  // Pagination
+  currentPage: 1,
+  perPage: 25,         // 0 = show all
 };
 
-// Load from localStorage
+/* ── LocalStorage ───────────────────────────────────────── */
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem("tokenManager") || "{}");
-    if (saved.lang) state.lang = saved.lang;
-    if (saved.theme) state.theme = saved.theme;
+    if (saved.lang)   state.lang   = saved.lang;
+    if (saved.theme)  state.theme  = saved.theme;
     if (Array.isArray(saved.tokens)) state.tokens = saved.tokens;
     if (saved.nextId) state.nextId = saved.nextId;
+    if (saved.perPage !== undefined) state.perPage = Number(saved.perPage);
   } catch (_) {}
 }
 
-// Save to localStorage
 function saveState() {
   localStorage.setItem("tokenManager", JSON.stringify({
     lang: state.lang,
     theme: state.theme,
     tokens: state.tokens,
-    nextId: state.nextId
+    nextId: state.nextId,
+    perPage: state.perPage,
   }));
 }
 
-// Shorthand translation
 const t = () => LANG[state.lang];
 
 /* ── Theme ──────────────────────────────────────────────── */
@@ -153,63 +168,62 @@ function applyTheme() {
   document.documentElement.setAttribute("data-theme", state.theme);
   document.getElementById("btn-theme").innerHTML = state.theme === "dark" ? "&#9728;" : "&#9790;";
 }
-
 function toggleTheme() {
   state.theme = state.theme === "light" ? "dark" : "light";
-  applyTheme();
-  saveState();
+  applyTheme(); saveState();
 }
 
 /* ── Language ───────────────────────────────────────────── */
 function applyLang() {
   const T = t();
-  document.getElementById("txt-appName").textContent = T.appName;
-  document.getElementById("txt-appSub").textContent = T.appSub;
-  document.getElementById("txt-addToken").textContent = "+ " + T.addToken;
-  document.getElementById("txt-total").textContent = T.total;
-  document.getElementById("txt-active").textContent = T.active;
-  document.getElementById("txt-expired").textContent = T.expired;
-  document.getElementById("txt-invalid").textContent = T.invalid;
-  document.getElementById("txt-registry").textContent = T.registry;
-  document.getElementById("txt-registrySub").textContent = T.registrySub;
-  document.getElementById("search-input").placeholder = T.search;
-  document.getElementById("txt-deleteAll").innerHTML = T.deleteAll;
-  document.getElementById("col-id").textContent = T.colId;
-  document.getElementById("col-fbid").textContent = T.colFbId;
-  document.getElementById("col-token").textContent = T.colToken;
-  document.getElementById("col-cookie").textContent = T.colCookie;
-  document.getElementById("col-status").textContent = T.colStatus;
-  document.getElementById("col-note").textContent = T.colNote;
-  document.getElementById("col-created").textContent = T.colCreated;
-  document.getElementById("col-actions").textContent = T.colActions;
-  document.getElementById("opt-all").textContent = T.allStatus;
-  document.getElementById("opt-active").textContent = T.active;
-  document.getElementById("opt-expired").textContent = T.expired;
-  document.getElementById("opt-invalid").textContent = T.invalid;
-  document.getElementById("txt-apply").textContent = T.apply;
+  document.getElementById("txt-appName").textContent    = T.appName;
+  document.getElementById("txt-appSub").textContent     = T.appSub;
+  document.getElementById("txt-addToken").textContent   = "+ " + T.addToken;
+  document.getElementById("txt-total").textContent      = T.total;
+  document.getElementById("txt-active").textContent     = T.active;
+  document.getElementById("txt-expired").textContent    = T.expired;
+  document.getElementById("txt-invalid").textContent    = T.invalid;
+  document.getElementById("txt-registry").textContent   = T.registry;
+  document.getElementById("txt-registrySub").textContent= T.registrySub;
+  document.getElementById("search-input").placeholder   = T.search;
+  document.getElementById("txt-deleteAll").innerHTML    = T.deleteAll;
+  document.getElementById("col-id").textContent         = T.colId;
+  document.getElementById("col-fbid").textContent       = T.colFbId;
+  document.getElementById("col-token").textContent      = T.colToken;
+  document.getElementById("col-cookie").textContent     = T.colCookie;
+  document.getElementById("col-status").textContent     = T.colStatus;
+  document.getElementById("col-note").textContent       = T.colNote;
+  document.getElementById("col-created").textContent    = T.colCreated;
+  document.getElementById("col-actions").textContent    = T.colActions;
+  document.getElementById("opt-all").textContent        = T.allStatus;
+  document.getElementById("opt-active").textContent     = T.active;
+  document.getElementById("opt-expired").textContent    = T.expired;
+  document.getElementById("opt-invalid").textContent    = T.invalid;
+  document.getElementById("txt-apply").textContent      = T.apply;
   document.getElementById("txt-deleteSelected").innerHTML = T.deleteSelected;
-  document.getElementById("txt-clear").innerHTML = T.clear;
+  document.getElementById("txt-clear").innerHTML        = T.clear;
   document.getElementById("opt-changeStatus").textContent = T.changeStatus;
-  document.getElementById("bopt-active").textContent = T.sActive;
-  document.getElementById("bopt-expired").textContent = T.sExpired;
-  document.getElementById("bopt-invalid").textContent = T.sInvalid;
-  document.getElementById("tab-manual").textContent = T.manual;
-  document.getElementById("tab-file").textContent = T.importFile;
+  document.getElementById("bopt-active").textContent   = T.sActive;
+  document.getElementById("bopt-expired").textContent  = T.sExpired;
+  document.getElementById("bopt-invalid").textContent  = T.sInvalid;
+  document.getElementById("tab-manual").textContent     = T.manual;
+  document.getElementById("tab-file").textContent       = T.importFile;
   document.getElementById("txt-fileFormat").textContent = T.fileFormat;
-  document.getElementById("txt-fileNote").textContent = T.fileNote;
-  document.getElementById("txt-dropTitle").textContent = T.dropTitle;
-  document.getElementById("txt-clearFile").textContent = T.clearFile;
-  document.getElementById("lbl-fbId").innerHTML = T.lbFbId;
-  document.getElementById("lbl-token").innerHTML = T.lbToken;
-  document.getElementById("lbl-cookie").innerHTML = T.lbCookie + ' <span class="label-opt">' + T.lbCookieOpt + "</span>";
-  document.getElementById("lbl-status").textContent = T.lbStatus;
-  document.getElementById("lbl-note").innerHTML = T.lbNote + ' <span class="label-opt">' + T.lbNoteOpt + "</span>";
-  document.getElementById("inp-note").placeholder = T.notePlaceholder;
-  document.getElementById("sopt-active").textContent = T.sActive;
-  document.getElementById("sopt-expired").textContent = T.sExpired;
-  document.getElementById("sopt-invalid").textContent = T.sInvalid;
+  document.getElementById("txt-fileNote").textContent   = T.fileNote;
+  document.getElementById("txt-dropTitle").textContent  = T.dropTitle;
+  document.getElementById("txt-clearFile").textContent  = T.clearFile;
+  document.getElementById("lbl-fbId").innerHTML         = T.lbFbId;
+  document.getElementById("lbl-token").innerHTML        = T.lbToken;
+  document.getElementById("lbl-cookie").innerHTML       = T.lbCookie + ' <span class="label-opt">' + T.lbCookieOpt + "</span>";
+  document.getElementById("lbl-status").textContent     = T.lbStatus;
+  document.getElementById("lbl-note").innerHTML         = T.lbNote + ' <span class="label-opt">' + T.lbNoteOpt + "</span>";
+  document.getElementById("inp-note").placeholder       = T.notePlaceholder;
+  document.getElementById("sopt-active").textContent   = T.sActive;
+  document.getElementById("sopt-expired").textContent  = T.sExpired;
+  document.getElementById("sopt-invalid").textContent  = T.sInvalid;
+  document.getElementById("txt-perPage").textContent   = T.perPage;
+  document.getElementById("opt-all-rows").textContent  = T.allRows;
 
-  // Lang toggle highlight
   if (state.lang === "en") {
     document.getElementById("lang-en").className = "lang-active";
     document.getElementById("lang-vi").className = "lang-dim";
@@ -221,92 +235,174 @@ function applyLang() {
 
 function toggleLang() {
   state.lang = state.lang === "en" ? "vi" : "en";
-  applyLang();
-  renderTable();
-  saveState();
+  applyLang(); renderTable(); saveState();
 }
 
 /* ── Stats ──────────────────────────────────────────────── */
 function renderStats() {
-  const total = state.tokens.length;
-  const active = state.tokens.filter(tk => tk.status === "active").length;
+  const total   = state.tokens.length;
+  const active  = state.tokens.filter(tk => tk.status === "active").length;
   const expired = state.tokens.filter(tk => tk.status === "expired").length;
   const invalid = state.tokens.filter(tk => tk.status === "invalid").length;
-  document.getElementById("stat-total").textContent = total;
-  document.getElementById("stat-active").textContent = active;
+  document.getElementById("stat-total").textContent   = total;
+  document.getElementById("stat-active").textContent  = active;
   document.getElementById("stat-expired").textContent = expired;
   document.getElementById("stat-invalid").textContent = invalid;
 }
 
-/* ── Table ──────────────────────────────────────────────── */
+/* ── Helpers ─────────────────────────────────────────────── */
 function getStatusLabel(status) {
   const T = t();
   if (status === "active") return T.sActive;
   if (status === "expired") return T.sExpired;
   return T.sInvalid;
 }
-
 function statusBadge(status) {
   return `<span class="badge badge-${status}">${getStatusLabel(status)}</span>`;
 }
-
 function copyCell(value, type) {
   if (!value) return `<span class="dash">—</span>`;
   const short = value.length > 16 ? value.slice(0, 16) + "…" : value;
-  const escaped = value.replace(/'/g, "\\'");
-  return `<span class="copy-cell" onclick="copyText('${escaped}','${type}')" id="copy-${type}-${Date.now()}">
+  const escaped = value.replace(/\\/g,"\\\\").replace(/'/g, "\\'");
+  return `<span class="copy-cell" onclick="copyText('${escaped}','${type}')">
     <span class="copy-val">${short}</span>
     <span class="copy-icon">&#10697;</span>
   </span>`;
 }
+function escHtml(str) {
+  return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ── Table + Pagination ─────────────────────────────────── */
+function resetPage() { state.currentPage = 1; }
 
 function renderTable() {
   const T = t();
   const search = document.getElementById("search-input").value.toLowerCase();
   const statusFilter = document.getElementById("status-filter").value;
 
-  let filtered = state.tokens.filter(tk => {
+  // Filter
+  const filtered = state.tokens.filter(tk => {
     if (search && !tk.fbId.toLowerCase().includes(search)) return false;
     if (statusFilter !== "all" && tk.status !== statusFilter) return false;
     return true;
   });
 
+  const total = filtered.length;
+  const perPage = state.perPage; // 0 = all
+
+  // Clamp currentPage
+  const totalPages = perPage === 0 ? 1 : Math.max(1, Math.ceil(total / perPage));
+  if (state.currentPage > totalPages) state.currentPage = totalPages;
+  if (state.currentPage < 1) state.currentPage = 1;
+
+  // Slice for current page
+  let paged;
+  if (perPage === 0 || total === 0) {
+    paged = filtered;
+  } else {
+    const start = (state.currentPage - 1) * perPage;
+    paged = filtered.slice(start, start + perPage);
+  }
+
   const tbody = document.getElementById("table-body");
 
-  if (filtered.length === 0) {
+  if (paged.length === 0) {
     tbody.innerHTML = `<tr><td colspan="9" class="empty">${T.noTokens}</td></tr>`;
-    updateBulkBar();
+  } else {
+    tbody.innerHTML = paged.map(tk => {
+      const sel = state.selectedIds.has(tk.id);
+      const created = new Date(tk.createdAt).toLocaleString("sv-SE").slice(0, 16);
+      const note = tk.note ? `<span class="truncate">${escHtml(tk.note)}</span>` : `<span class="dash">—</span>`;
+      return `<tr class="${sel ? "selected" : ""}" data-id="${tk.id}">
+        <td><input type="checkbox" onchange="toggleRow(${tk.id},this)" ${sel ? "checked" : ""} /></td>
+        <td class="mono" style="color:var(--text-muted);font-size:12px">${tk.id}</td>
+        <td><strong class="mono" style="font-size:13px">${escHtml(tk.fbId)}</strong></td>
+        <td>${copyCell(tk.token, "token-" + tk.id)}</td>
+        <td>${copyCell(tk.cookie, "cookie-" + tk.id)}</td>
+        <td>${statusBadge(tk.status)}</td>
+        <td style="max-width:140px">${note}</td>
+        <td class="mono" style="font-size:11px;color:var(--text-muted);white-space:nowrap">${created}</td>
+        <td>
+          <div class="actions">
+            <button class="icon-btn" onclick="openEditModal(${tk.id})">&#9998;</button>
+            <button class="icon-btn danger" onclick="confirmDeleteOne(${tk.id})">&#128465;</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  }
+
+  renderPagination(total, totalPages);
+  updateBulkBar();
+  updateSelectAllCheckbox(filtered);
+
+  // Sync per-page dropdown
+  document.getElementById("per-page-select").value = String(perPage);
+}
+
+/* ── Pagination rendering ───────────────────────────────── */
+function renderPagination(total, totalPages) {
+  const T = t();
+  const perPage = state.perPage;
+  const page    = state.currentPage;
+  const bar     = document.getElementById("pagination-bar");
+
+  if (total === 0) { bar.style.display = "none"; return; }
+  bar.style.display = "flex";
+
+  // Info text
+  const from = perPage === 0 ? 1 : Math.min((page - 1) * perPage + 1, total);
+  const to   = perPage === 0 ? total : Math.min(page * perPage, total);
+  document.getElementById("pagination-info").textContent = T.pageInfo(from, to, total);
+
+  // Page buttons
+  if (perPage === 0 || totalPages <= 1) {
+    document.getElementById("page-nav").innerHTML = "";
     return;
   }
 
-  tbody.innerHTML = filtered.map(tk => {
-    const sel = state.selectedIds.has(tk.id);
-    const created = new Date(tk.createdAt).toLocaleString("sv-SE").slice(0, 16);
-    const note = tk.note ? `<span class="truncate">${escHtml(tk.note)}</span>` : `<span class="dash">—</span>`;
-    return `<tr class="${sel ? "selected" : ""}" data-id="${tk.id}">
-      <td><input type="checkbox" onchange="toggleRow(${tk.id},this)" ${sel ? "checked" : ""} /></td>
-      <td class="mono" style="color:var(--text-muted);font-size:12px">${tk.id}</td>
-      <td><strong class="mono" style="font-size:13px">${escHtml(tk.fbId)}</strong></td>
-      <td>${copyCell(tk.token, "token-" + tk.id)}</td>
-      <td>${copyCell(tk.cookie, "cookie-" + tk.id)}</td>
-      <td>${statusBadge(tk.status)}</td>
-      <td style="max-width:140px">${note}</td>
-      <td class="mono" style="font-size:11px;color:var(--text-muted);white-space:nowrap">${created}</td>
-      <td>
-        <div class="actions">
-          <button class="icon-btn" onclick="openEditModal(${tk.id})" title="${T.colActions}">&#9998;</button>
-          <button class="icon-btn danger" onclick="confirmDeleteOne(${tk.id})" title="${T.confirmBtn}">&#128465;</button>
-        </div>
-      </td>
-    </tr>`;
-  }).join("");
+  // Show: « ‹ [pages] › »
+  // Sliding window: show at most 5 page numbers
+  let pages = [];
+  const WINDOW = 2; // pages around current
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= page - WINDOW && i <= page + WINDOW)) {
+      pages.push(i);
+    }
+  }
+  // Insert ellipsis gaps
+  let navHtml = "";
+  navHtml += pageBtn(T.pageFirst, 1, page === 1, "page-first");
+  navHtml += pageBtn(T.pagePrev,  page - 1, page === 1, "page-prev");
 
-  updateBulkBar();
-  updateSelectAllCheckbox();
+  let prev = 0;
+  for (const p of pages) {
+    if (prev && p - prev > 1) navHtml += `<span class="page-ellipsis">…</span>`;
+    navHtml += `<button class="page-num ${p === page ? "active" : ""}" onclick="goToPage(${p})">${p}</button>`;
+    prev = p;
+  }
+
+  navHtml += pageBtn(T.pageNext, page + 1, page === totalPages, "page-next");
+  navHtml += pageBtn(T.pageLast, totalPages, page === totalPages, "page-last");
+
+  document.getElementById("page-nav").innerHTML = navHtml;
 }
 
-function escHtml(str) {
-  return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function pageBtn(label, target, disabled, cls) {
+  return `<button class="page-num ${cls} ${disabled ? "disabled" : ""}" onclick="${disabled ? "" : "goToPage(" + target + ")"}">${label}</button>`;
+}
+
+function goToPage(page) {
+  state.currentPage = page;
+  renderTable();
+}
+
+function changePerPage(value) {
+  state.perPage = Number(value);
+  state.currentPage = 1;
+  saveState();
+  renderTable();
 }
 
 /* ── Selection ──────────────────────────────────────────── */
@@ -316,7 +412,14 @@ function toggleRow(id, checkbox) {
   const row = checkbox.closest("tr");
   row.classList.toggle("selected", checkbox.checked);
   updateBulkBar();
-  updateSelectAllCheckbox();
+  const search = document.getElementById("search-input").value.toLowerCase();
+  const statusFilter = document.getElementById("status-filter").value;
+  const filtered = state.tokens.filter(tk => {
+    if (search && !tk.fbId.toLowerCase().includes(search)) return false;
+    if (statusFilter !== "all" && tk.status !== statusFilter) return false;
+    return true;
+  });
+  updateSelectAllCheckbox(filtered);
 }
 
 function toggleSelectAll(masterChk) {
@@ -339,26 +442,19 @@ function clearSelection() {
   renderTable();
 }
 
-function updateSelectAllCheckbox() {
-  const search = document.getElementById("search-input").value.toLowerCase();
-  const statusFilter = document.getElementById("status-filter").value;
-  const visible = state.tokens.filter(tk => {
-    if (search && !tk.fbId.toLowerCase().includes(search)) return false;
-    if (statusFilter !== "all" && tk.status !== statusFilter) return false;
-    return true;
-  });
+function updateSelectAllCheckbox(filtered) {
   const chkAll = document.getElementById("chk-all");
-  if (!chkAll) return;
-  const allSel = visible.length > 0 && visible.every(tk => state.selectedIds.has(tk.id));
-  const someSel = visible.some(tk => state.selectedIds.has(tk.id));
-  chkAll.checked = allSel;
+  if (!chkAll || !filtered) return;
+  const allSel  = filtered.length > 0 && filtered.every(tk => state.selectedIds.has(tk.id));
+  const someSel = filtered.some(tk => state.selectedIds.has(tk.id));
+  chkAll.checked       = allSel;
   chkAll.indeterminate = someSel && !allSel;
 }
 
 function updateBulkBar() {
   const T = t();
   const count = state.selectedIds.size;
-  const bar = document.getElementById("bulk-bar");
+  const bar   = document.getElementById("bulk-bar");
   bar.style.display = count > 0 ? "flex" : "none";
   document.getElementById("bulk-count").textContent = T.selectedCount(count);
   document.getElementById("bulk-status-select").value = "";
@@ -369,14 +465,10 @@ function applyBulkStatus() {
   const status = document.getElementById("bulk-status-select").value;
   if (!status) return;
   const T = t();
-  state.tokens.forEach(tk => {
-    if (state.selectedIds.has(tk.id)) tk.status = status;
-  });
+  state.tokens.forEach(tk => { if (state.selectedIds.has(tk.id)) tk.status = status; });
   const count = state.selectedIds.size;
   state.selectedIds.clear();
-  saveState();
-  renderStats();
-  renderTable();
+  saveState(); renderStats(); renderTable();
   showToast(T.toastBulkStatus, T.toastBulkStatusDesc(count));
 }
 
@@ -386,9 +478,7 @@ function confirmBulkDelete() {
   openConfirm(T.bulkDeleteTitle, T.bulkDeleteDesc(count), () => {
     state.tokens = state.tokens.filter(tk => !state.selectedIds.has(tk.id));
     state.selectedIds.clear();
-    saveState();
-    renderStats();
-    renderTable();
+    saveState(); renderStats(); resetPage(); renderTable();
     showToast(T.toastBulkDeleted, T.toastBulkDeletedDesc(count), false);
   });
 }
@@ -396,11 +486,8 @@ function confirmBulkDelete() {
 function confirmDeleteAll() {
   const T = t();
   openConfirm(T.deleteAllTitle, T.deleteAllDesc, () => {
-    state.tokens = [];
-    state.selectedIds.clear();
-    saveState();
-    renderStats();
-    renderTable();
+    state.tokens = []; state.selectedIds.clear();
+    saveState(); renderStats(); resetPage(); renderTable();
     showToast(T.toastDeleteAll, T.toastDeleteAllDesc, false);
   });
 }
@@ -412,9 +499,7 @@ function confirmDeleteOne(id) {
   openConfirm(T.deleteTitle, T.deleteDesc(tk.fbId), () => {
     state.tokens = state.tokens.filter(t => t.id !== id);
     state.selectedIds.delete(id);
-    saveState();
-    renderStats();
-    renderTable();
+    saveState(); renderStats(); renderTable();
     showToast(T.toastDeleted, T.toastDeletedDesc, false);
   });
 }
@@ -423,18 +508,14 @@ function confirmDeleteOne(id) {
 function openConfirm(title, desc, callback) {
   const T = t();
   document.getElementById("confirm-title").textContent = title;
-  document.getElementById("confirm-desc").textContent = desc;
+  document.getElementById("confirm-desc").textContent  = desc;
   document.getElementById("btn-confirmOk").textContent = T.confirmBtn;
   document.getElementById("btn-confirmCancel").textContent = T.cancel;
   state.confirmCallback = callback;
   openModal("modal-confirm");
 }
-
 function confirmAction() {
-  if (state.confirmCallback) {
-    state.confirmCallback();
-    state.confirmCallback = null;
-  }
+  if (state.confirmCallback) { state.confirmCallback(); state.confirmCallback = null; }
   closeModal("modal-confirm");
 }
 
@@ -443,12 +524,10 @@ function openAddModal() {
   const T = t();
   state.editingId = null;
   document.getElementById("modal-form-title").textContent = T.addTokenTitle;
-  document.getElementById("form-tabs").style.display = "flex";
-  document.getElementById("btn-save").textContent = T.createBtn;
-  document.getElementById("btn-cancel").textContent = T.cancel;
-  clearForm();
-  switchTab("manual");
-  openModal("modal-form");
+  document.getElementById("form-tabs").style.display      = "flex";
+  document.getElementById("btn-save").textContent         = T.createBtn;
+  document.getElementById("btn-cancel").textContent       = T.cancel;
+  clearForm(); switchTab("manual"); openModal("modal-form");
 }
 
 function openEditModal(id) {
@@ -457,44 +536,41 @@ function openEditModal(id) {
   if (!tk) return;
   state.editingId = id;
   document.getElementById("modal-form-title").textContent = T.editTokenTitle;
-  document.getElementById("form-tabs").style.display = "none";
-  document.getElementById("btn-save").textContent = T.save;
-  document.getElementById("btn-cancel").textContent = T.cancel;
-  document.getElementById("inp-fbId").value = tk.fbId;
-  document.getElementById("inp-token").value = tk.token;
-  document.getElementById("inp-cookie").value = tk.cookie || "";
-  document.getElementById("inp-status").value = tk.status;
-  document.getElementById("inp-note").value = tk.note || "";
-  clearErrors();
-  showPanel("manual");
-  openModal("modal-form");
+  document.getElementById("form-tabs").style.display      = "none";
+  document.getElementById("btn-save").textContent         = T.save;
+  document.getElementById("btn-cancel").textContent       = T.cancel;
+  document.getElementById("inp-fbId").value    = tk.fbId;
+  document.getElementById("inp-token").value   = tk.token;
+  document.getElementById("inp-cookie").value  = tk.cookie || "";
+  document.getElementById("inp-status").value  = tk.status;
+  document.getElementById("inp-note").value    = tk.note || "";
+  clearErrors(); showPanel("manual"); openModal("modal-form");
 }
 
 function clearForm() {
-  document.getElementById("inp-fbId").value = "";
-  document.getElementById("inp-token").value = "";
+  document.getElementById("inp-fbId").value   = "";
+  document.getElementById("inp-token").value  = "";
   document.getElementById("inp-cookie").value = "";
   document.getElementById("inp-status").value = "active";
-  document.getElementById("inp-note").value = "";
+  document.getElementById("inp-note").value   = "";
   clearErrors();
 }
-
 function clearErrors() {
-  document.getElementById("err-fbId").textContent = "";
+  document.getElementById("err-fbId").textContent  = "";
   document.getElementById("err-token").textContent = "";
 }
 
 function saveToken() {
   const T = t();
-  const fbId = document.getElementById("inp-fbId").value.trim();
-  const token = document.getElementById("inp-token").value.trim();
+  const fbId   = document.getElementById("inp-fbId").value.trim();
+  const token  = document.getElementById("inp-token").value.trim();
   const cookie = document.getElementById("inp-cookie").value.trim();
   const status = document.getElementById("inp-status").value;
-  const note = document.getElementById("inp-note").value.trim();
+  const note   = document.getElementById("inp-note").value.trim();
 
   clearErrors();
   let valid = true;
-  if (!fbId) { document.getElementById("err-fbId").textContent = T.errFbId; valid = false; }
+  if (!fbId)  { document.getElementById("err-fbId").textContent  = T.errFbId;  valid = false; }
   if (!token) { document.getElementById("err-token").textContent = T.errToken; valid = false; }
   if (!valid) return;
 
@@ -507,22 +583,18 @@ function saveToken() {
     showToast(T.toastCreated, T.toastCreatedDesc);
   }
 
-  saveState();
-  renderStats();
-  renderTable();
-  closeModal("modal-form");
+  saveState(); renderStats(); renderTable(); closeModal("modal-form");
 }
 
-/* ── Tab switching ──────────────────────────────────────── */
+/* ── Tabs ─────────────────────────────────────────────────── */
 function switchTab(name) {
   document.getElementById("tab-manual").classList.toggle("active", name === "manual");
   document.getElementById("tab-file").classList.toggle("active", name === "file");
   showPanel(name);
 }
-
 function showPanel(name) {
   document.getElementById("panel-manual").style.display = name === "manual" ? "block" : "none";
-  document.getElementById("panel-file").style.display = name === "file" ? "block" : "none";
+  document.getElementById("panel-file").style.display   = name === "file"   ? "block" : "none";
 }
 
 /* ── File Import ────────────────────────────────────────── */
@@ -534,19 +606,17 @@ function parseFile(content) {
     const delim = line.includes("|") ? "|" : ",";
     const parts = line.split(delim).map(p => p.trim());
     const [fbId="", token="", cookieOrStatus="", statusOrNote="", ...rest] = parts;
-
     let cookie = "", status = "active", note = "";
     if (VALID_STATUSES.includes(cookieOrStatus.toLowerCase())) {
       status = cookieOrStatus.toLowerCase();
-      note = [statusOrNote, ...rest].join(delim).trim();
+      note   = [statusOrNote, ...rest].join(delim).trim();
     } else {
       cookie = cookieOrStatus;
       if (VALID_STATUSES.includes(statusOrNote.toLowerCase())) status = statusOrNote.toLowerCase();
-      note = rest.join(delim).trim();
+      note   = rest.join(delim).trim();
     }
-
     let error = null;
-    if (!fbId) error = T.missingFbId;
+    if (!fbId)  error = T.missingFbId;
     else if (!token) error = T.missingToken;
     return { fbId, token, cookie, status, note, error };
   });
@@ -558,71 +628,54 @@ function handleDrop(e) {
   const file = e.dataTransfer.files[0];
   if (file) readFile(file);
 }
-
-function handleFileSelect(e) {
-  const file = e.target.files[0];
-  if (file) readFile(file);
-}
-
+function handleFileSelect(e) { const file = e.target.files[0]; if (file) readFile(file); }
 function readFile(file) {
   const reader = new FileReader();
-  reader.onload = ev => {
-    state.parsedImport = parseFile(ev.target.result);
-    renderPreview(file.name);
-  };
+  reader.onload = ev => { state.parsedImport = parseFile(ev.target.result); renderPreview(file.name); };
   reader.readAsText(file);
 }
 
 function renderPreview(filename) {
   const T = t();
-  const valid = state.parsedImport.filter(p => !p.error);
+  const valid  = state.parsedImport.filter(p => !p.error);
   const errors = state.parsedImport.filter(p => p.error);
-
   document.getElementById("preview-filename").textContent = filename;
-  document.getElementById("preview-valid").textContent = T.validCount(valid.length);
-  document.getElementById("preview-error").textContent = errors.length > 0 ? T.errorCount(errors.length) : "";
-  document.getElementById("txt-importReady").textContent = T.importReady(valid.length);
-  document.getElementById("btn-import").textContent = T.importBtn(valid.length);
+  document.getElementById("preview-valid").textContent    = T.validCount(valid.length);
+  document.getElementById("preview-error").textContent    = errors.length > 0 ? T.errorCount(errors.length) : "";
+  document.getElementById("txt-importReady").textContent  = T.importReady(valid.length);
+  document.getElementById("btn-import").textContent       = T.importBtn(valid.length);
   document.getElementById("btn-cancelImport").textContent = T.cancel;
-
   document.getElementById("preview-body").innerHTML = state.parsedImport.map((p, i) =>
     `<tr class="${p.error ? "error-row" : ""}">
       <td>${p.error ? `<span class="error-text">${p.error}</span>` : escHtml(p.fbId)}</td>
       <td>${p.token ? p.token.slice(0,16)+"…" : "-"}</td>
       <td>${p.cookie ? p.cookie.slice(0,14)+"…" : '<span class="dash">-</span>'}</td>
-      <td>
-        ${!p.error ? `<select class="select select-sm" onchange="state.parsedImport[${i}].status=this.value" style="min-width:80px">
-          <option value="active"${p.status==="active"?" selected":""}>active</option>
-          <option value="expired"${p.status==="expired"?" selected":""}>expired</option>
-          <option value="invalid"${p.status==="invalid"?" selected":""}>invalid</option>
-        </select>` : ""}
-      </td>
+      <td>${!p.error ? `<select class="select select-sm" onchange="state.parsedImport[${i}].status=this.value" style="min-width:80px">
+        <option value="active"${p.status==="active"?" selected":""}>active</option>
+        <option value="expired"${p.status==="expired"?" selected":""}>expired</option>
+        <option value="invalid"${p.status==="invalid"?" selected":""}>invalid</option>
+      </select>` : ""}</td>
     </tr>`
   ).join("");
-
-  document.getElementById("dropzone").style.display = "none";
+  document.getElementById("dropzone").style.display     = "none";
   document.getElementById("file-preview").style.display = "block";
 }
 
 function clearFile() {
   state.parsedImport = [];
   document.getElementById("file-input").value = "";
-  document.getElementById("dropzone").style.display = "block";
+  document.getElementById("dropzone").style.display     = "block";
   document.getElementById("file-preview").style.display = "none";
 }
 
 function importTokens() {
   const T = t();
   const valid = state.parsedImport.filter(p => !p.error);
-  if (valid.length === 0) return;
+  if (!valid.length) return;
   valid.forEach(p => {
     state.tokens.push({ id: state.nextId++, fbId: p.fbId, token: p.token, cookie: p.cookie || null, status: p.status, note: p.note || null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   });
-  saveState();
-  renderStats();
-  renderTable();
-  closeModal("modal-form");
-  clearFile();
+  saveState(); renderStats(); resetPage(); renderTable(); closeModal("modal-form"); clearFile();
   showToast(T.toastImported, T.toastImportedDesc(valid.length, 0));
 }
 
@@ -630,20 +683,15 @@ function importTokens() {
 function copyText(value, type) {
   const T = t();
   navigator.clipboard.writeText(value).then(() => {
-    const isToken = type.startsWith("token-");
-    showToast(isToken ? T.copiedToken : T.copiedCookie, T.copiedDesc);
+    showToast(type.startsWith("token-") ? T.copiedToken : T.copiedCookie, T.copiedDesc);
   });
 }
 
 /* ── Modal helpers ──────────────────────────────────────── */
-function openModal(id) { document.getElementById(id).classList.add("open"); }
+function openModal(id)  { document.getElementById(id).classList.add("open"); }
 function closeModal(id) {
   document.getElementById(id).classList.remove("open");
-  if (id === "modal-form") {
-    clearFile();
-    state.editingId = null;
-    state.parsedImport = [];
-  }
+  if (id === "modal-form") { clearFile(); state.editingId = null; state.parsedImport = []; }
 }
 function closeIfBackdrop(event, id) {
   if (event.target === document.getElementById(id)) closeModal(id);
@@ -663,6 +711,11 @@ function init() {
   loadState();
   applyTheme();
   applyLang();
+  // Sync per-page dropdown to loaded value
+  document.getElementById("per-page-select").value = String(state.perPage);
+  // Reset page on search/filter change
+  document.getElementById("search-input").addEventListener("input", () => { resetPage(); renderTable(); });
+  document.getElementById("status-filter").addEventListener("change", () => { resetPage(); renderTable(); });
   renderStats();
   renderTable();
 }

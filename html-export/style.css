@@ -398,3 +398,49 @@ button { cursor: pointer; border: none; outline: none; transition: all .15s; }
 
 /* ── Action column ───────────────────────────────────────── */
 .actions { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+
+/* ── Pagination bar ──────────────────────────────────────── */
+.pagination-bar {
+  display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 12px;
+  padding: 10px 4px;
+}
+.pagination-info {
+  font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.pagination-controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+}
+.per-page-wrap {
+  display: flex; align-items: center; gap: 8px;
+}
+.per-page-label {
+  font-size: 12px; color: var(--text-muted); white-space: nowrap;
+}
+.page-nav {
+  display: flex; align-items: center; gap: 3px;
+}
+.page-num {
+  min-width: 32px; height: 32px; padding: 0 6px;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
+  background: none; border: 1px solid transparent;
+  color: var(--text-muted); cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.page-num:hover:not(.disabled) {
+  background: var(--bg-muted); color: var(--text); border-color: var(--border);
+}
+.page-num.active {
+  background: var(--primary); color: #fff;
+  border-color: var(--primary); font-weight: 700;
+}
+.page-num.disabled {
+  opacity: .3; cursor: default;
+}
+.page-first, .page-last, .page-prev, .page-next {
+  font-size: 15px; font-weight: 700;
+}
+.page-ellipsis {
+  padding: 0 4px; color: var(--text-dim); font-size: 13px;
+  display: inline-flex; align-items: center; height: 32px;
+}

@@ -63,9 +63,9 @@
         <div class="toolbar">
           <div class="search-wrap">
             <span class="search-icon">&#128269;</span>
-            <input id="search-input" class="search-input" placeholder="Search by FB ID..." oninput="renderTable()" />
+            <input id="search-input" class="search-input" placeholder="Search by FB ID..." />
           </div>
-          <select id="status-filter" class="select" onchange="renderTable()">
+          <select id="status-filter" class="select">
             <option value="all" id="opt-all">All status</option>
             <option value="active" id="opt-active">Active</option>
             <option value="expired" id="opt-expired">Expired</option>
@@ -111,6 +111,24 @@
             <tr><td colspan="9" class="empty" id="txt-loading">Loading...</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination bar -->
+      <div class="pagination-bar" id="pagination-bar">
+        <div class="pagination-info" id="pagination-info"></div>
+        <div class="pagination-controls">
+          <div class="per-page-wrap">
+            <span class="per-page-label" id="txt-perPage">Rows per page:</span>
+            <select id="per-page-select" class="select select-sm" onchange="changePerPage(this.value)" style="min-width:70px">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="0" id="opt-all-rows">All</option>
+            </select>
+          </div>
+          <div class="page-nav" id="page-nav"></div>
+        </div>
       </div>
     </div>
   </main>
