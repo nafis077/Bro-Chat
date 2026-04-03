@@ -22,7 +22,57 @@ import { useTheme } from "@/hooks/use-theme";
 import { useLang } from "@/lib/lang-context";
 import { useToast } from "@/hooks/use-toast";
 import { getListTokensQueryKey, getGetTokenStatsQueryKey, useListTokens } from "@workspace/api-client-react";
-import { Sun, Moon, Download, Trash2, Loader2, Languages, Rows3, Palette } from "lucide-react";
+import { Sun, Moon, Download, Trash2, Loader2, Languages, Rows3, Palette, RefreshCw, Timer, Shuffle, Hash, SkipForward, AlertTriangle } from "lucide-react";
+
+const ROTATION_KEY = "tkm_rotation";
+
+type RotationMode = "round-robin" | "random" | "priority";
+
+interface RotationConfig {
+  maxConcurrent: string;
+  cooldownSec: string;
+  rotationMode: RotationMode;
+  maxRequests: string;
+  skipInvalid: boolean;
+  autoMark: boolean;
+}
+
+const DEFAULT_ROTATION: RotationConfig = {
+  maxConcurrent: "1",
+  cooldownSec: "0",
+  rotationMode: "round-robin",
+  maxRequests: "0",
+  skipInvalid: true,
+  autoMark: true,
+};
+
+function loadRotation(): RotationConfig {
+  try {
+    const raw = localStorage.getItem(ROTATION_KEY);
+    if (raw) return { ...DEFAULT_ROTATION, ...JSON.parse(raw) };
+  } catch {}
+  return DEFAULT_ROTATION;
+}
+
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+        value ? "bg-primary" : "bg-input"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+          value ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+}
 
 function SettingRow({
   icon,
@@ -84,6 +134,17 @@ export function Settings() {
   const [clearAllOpen, setClearAllOpen] = useState(false);
   const [clearAllPending, setClearAllPending] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  const [rotation, setRotation] = useState<RotationConfig>(loadRotation);
+
+  const updateRotation = (patch: Partial<RotationConfig>) => {
+    setRotation((prev) => {
+      const next = { ...prev, ...patch };
+      try { localStorage.setItem(ROTATION_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+    toast({ title: t.rotationSaved, description: t.rotationSavedDesc });
+  };
 
   const { data: tokens } = useListTokens({}, {
     query: { queryKey: getListTokensQueryKey({}) },
@@ -234,6 +295,109 @@ export function Settings() {
               <SelectItem value="0">{t.allRows}</SelectItem>
             </SelectContent>
           </Select>
+        </SettingRow>
+      </SectionCard>
+
+      {/* Token Rotation */}
+      <SectionCard title={t.sectionRotation} desc={t.sectionRotationDesc}>
+        {/* Max concurrent */}
+        <SettingRow
+          icon={<RefreshCw className="w-4 h-4" />}
+          label={t.rotationMaxConcurrent}
+          desc={t.rotationMaxConcurrentDesc}
+        >
+          <Select value={rotation.maxConcurrent} onValueChange={(v) => updateRotation({ maxConcurrent: v })}>
+            <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg text-sm">
+              <SelectItem value="1">1</SelectItem>
+              <SelectItem value="2">2</SelectItem>
+              <SelectItem value="5">5</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="0">{t.unlimited}</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        {/* Cooldown */}
+        <SettingRow
+          icon={<Timer className="w-4 h-4" />}
+          label={t.rotationCooldown}
+          desc={t.rotationCooldownDesc}
+        >
+          <Select value={rotation.cooldownSec} onValueChange={(v) => updateRotation({ cooldownSec: v })}>
+            <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg text-sm">
+              <SelectItem value="0">{t.sec(0)}</SelectItem>
+              <SelectItem value="10">{t.sec(10)}</SelectItem>
+              <SelectItem value="30">{t.sec(30)}</SelectItem>
+              <SelectItem value="60">{t.min(1)}</SelectItem>
+              <SelectItem value="300">{t.min(5)}</SelectItem>
+              <SelectItem value="600">{t.min(10)}</SelectItem>
+              <SelectItem value="1800">{t.min(30)}</SelectItem>
+              <SelectItem value="3600">{t.hour("1")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        {/* Rotation mode */}
+        <SettingRow
+          icon={<Shuffle className="w-4 h-4" />}
+          label={t.rotationMode}
+          desc={t.rotationModeDesc}
+        >
+          <Select value={rotation.rotationMode} onValueChange={(v) => updateRotation({ rotationMode: v as RotationMode })}>
+            <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg text-sm">
+              <SelectItem value="round-robin">{t.rotationModeRound}</SelectItem>
+              <SelectItem value="random">{t.rotationModeRandom}</SelectItem>
+              <SelectItem value="priority">{t.rotationModePriority}</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        {/* Max requests per token */}
+        <SettingRow
+          icon={<Hash className="w-4 h-4" />}
+          label={t.rotationMaxRequests}
+          desc={t.rotationMaxRequestsDesc}
+        >
+          <Select value={rotation.maxRequests} onValueChange={(v) => updateRotation({ maxRequests: v })}>
+            <SelectTrigger className="h-9 rounded-lg text-sm border-border bg-background w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-lg text-sm">
+              <SelectItem value="0">{t.unlimited}</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+              <SelectItem value="500">500</SelectItem>
+              <SelectItem value="1000">1000</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+
+        {/* Skip invalid */}
+        <SettingRow
+          icon={<SkipForward className="w-4 h-4" />}
+          label={t.rotationSkipInvalid}
+          desc={t.rotationSkipInvalidDesc}
+        >
+          <Toggle value={rotation.skipInvalid} onChange={(v) => updateRotation({ skipInvalid: v })} />
+        </SettingRow>
+
+        {/* Auto-mark failed */}
+        <SettingRow
+          icon={<AlertTriangle className="w-4 h-4" />}
+          label={t.rotationAutoMark}
+          desc={t.rotationAutoMarkDesc}
+        >
+          <Toggle value={rotation.autoMark} onChange={(v) => updateRotation({ autoMark: v })} />
         </SettingRow>
       </SectionCard>
 
