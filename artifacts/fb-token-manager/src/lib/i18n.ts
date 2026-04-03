@@ -128,6 +128,15 @@ export const translations = {
 
     missingFbId: "Missing FB ID",
     missingToken: "Missing token",
+
+    // Pagination
+    rowsPerPage: "Rows per page:",
+    allRows: "All",
+    pageInfo: (from: number, to: number, total: number) => `${from}–${to} of ${total}`,
+    pagePrev: "Previous page",
+    pageNext: "Next page",
+    pageFirst: "First page",
+    pageLast: "Last page",
   },
 
   vi: {
@@ -257,6 +266,15 @@ export const translations = {
 
     missingFbId: "Thiếu FB ID",
     missingToken: "Thiếu token",
+
+    // Pagination
+    rowsPerPage: "Số dòng mỗi trang:",
+    allRows: "Tất cả",
+    pageInfo: (from: number, to: number, total: number) => `${from}–${to} / ${total}`,
+    pagePrev: "Trang trước",
+    pageNext: "Trang sau",
+    pageFirst: "Trang đầu",
+    pageLast: "Trang cuối",
   },
 } as const;
 

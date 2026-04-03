@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListTokens,
@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLang } from "@/lib/lang-context";
 import type { T } from "@/lib/i18n";
 import { TokenFormModal } from "@/components/TokenFormModal";
-import { Pencil, Trash2, Copy, Check, Loader2, X } from "lucide-react";
+import { Pencil, Trash2, Copy, Check, Loader2, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 type Status = "active" | "expired" | "invalid";
 
@@ -183,6 +183,13 @@ export function TokenTable({ searchFilter, statusFilter }: TokenTableProps) {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkPending, setBulkPending] = useState(false);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState<number>(() => {
+    const saved = localStorage.getItem("tkm_perPage");
+    return saved ? Number(saved) : 25;
+  });
+
   const params = {
     status: statusFilter !== "all" ? statusFilter : undefined,
     search: searchFilter || undefined,
@@ -211,8 +218,27 @@ export function TokenTable({ searchFilter, statusFilter }: TokenTableProps) {
     queryClient.invalidateQueries({ queryKey: getGetTokenStatsQueryKey() });
   }, [queryClient]);
 
+  // Reset to first page whenever filters change
+  useEffect(() => { setCurrentPage(1); }, [searchFilter, statusFilter]);
+
   const tokenList = tokens ?? [];
-  const allIds = tokenList.map((tk) => tk.id);
+
+  // Pagination math
+  const totalItems = tokenList.length;
+  const totalPages = perPage === 0 ? 1 : Math.max(1, Math.ceil(totalItems / perPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const pageStart = perPage === 0 ? 0 : (safePage - 1) * perPage;
+  const pageEnd   = perPage === 0 ? totalItems : Math.min(safePage * perPage, totalItems);
+  const pagedList = tokenList.slice(pageStart, pageEnd);
+
+  const handlePerPageChange = (val: string) => {
+    const n = Number(val);
+    setPerPage(n);
+    setCurrentPage(1);
+    localStorage.setItem("tkm_perPage", String(n));
+  };
+
+  const allIds = pagedList.map((tk) => tk.id);
   const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id));
   const someSelected = allIds.some((id) => selectedIds.has(id)) && !allSelected;
 
@@ -323,14 +349,14 @@ export function TokenTable({ searchFilter, statusFilter }: TokenTableProps) {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : tokenList.length === 0 ? (
+              ) : pagedList.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-12 text-sm text-muted-foreground">
                     {t.noTokens}
                   </TableCell>
                 </TableRow>
               ) : (
-                tokenList.map((token) => {
+                pagedList.map((token) => {
                   const isSelected = selectedIds.has(token.id);
                   return (
                     <TableRow
@@ -401,6 +427,112 @@ export function TokenTable({ searchFilter, statusFilter }: TokenTableProps) {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination bar */}
+        {!isLoading && totalItems > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
+            {/* Info */}
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {t.pageInfo(pageStart + 1, pageEnd, totalItems)}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Rows per page */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{t.rowsPerPage}</span>
+                <Select value={String(perPage)} onValueChange={handlePerPageChange}>
+                  <SelectTrigger className="h-8 rounded-lg text-xs border-border bg-card px-2 w-[70px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-lg text-sm">
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="0">{t.allRows}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Page navigation — only when more than 1 page */}
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safePage === 1}
+                    aria-label={t.pageFirst}
+                  >
+                    <ChevronsLeft className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage === 1}
+                    aria-label={t.pagePrev}
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </Button>
+
+                  {/* Page number buttons — sliding window */}
+                  {(() => {
+                    const WINDOW = 2;
+                    const nums: (number | "…")[] = [];
+                    let prev = 0;
+                    for (let i = 1; i <= totalPages; i++) {
+                      if (i === 1 || i === totalPages || (i >= safePage - WINDOW && i <= safePage + WINDOW)) {
+                        if (prev && i - prev > 1) nums.push("…");
+                        nums.push(i);
+                        prev = i;
+                      }
+                    }
+                    return nums.map((item, idx) =>
+                      item === "…" ? (
+                        <span key={`e-${idx}`} className="w-8 text-center text-xs text-muted-foreground">…</span>
+                      ) : (
+                        <Button
+                          key={item}
+                          variant={item === safePage ? "default" : "ghost"}
+                          size="icon"
+                          className={`h-8 w-8 rounded-lg text-xs font-medium ${item === safePage ? "pointer-events-none" : ""}`}
+                          onClick={() => setCurrentPage(item)}
+                          aria-current={item === safePage ? "page" : undefined}
+                        >
+                          {item}
+                        </Button>
+                      )
+                    );
+                  })()}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safePage === totalPages}
+                    aria-label={t.pageNext}
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safePage === totalPages}
+                    aria-label={t.pageLast}
+                  >
+                    <ChevronsRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {editToken && (
