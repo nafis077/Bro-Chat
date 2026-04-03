@@ -25,13 +25,28 @@
           <span id="lang-vi" class="lang-dim">VN</span>
         </button>
         <button class="btn-icon" onclick="toggleTheme()" title="Toggle theme" id="btn-theme">&#9790;</button>
-        <button class="btn-primary" onclick="openAddModal()" id="txt-addToken">+ Add Token</button>
+        <button class="btn-primary" onclick="openAddModal()" id="btn-add-token"><span id="txt-addToken">+ Add Token</span></button>
+      </div>
+    </div>
+    <div class="tab-nav-bar">
+      <div class="tab-nav-inner">
+        <button class="tab-nav-btn active" id="tab-btn-tokens" onclick="switchMainTab('tokens')">
+          <span class="tab-nav-icon">&#9783;</span>
+          <span id="txt-tabTokens">Tokens</span>
+        </button>
+        <button class="tab-nav-btn" id="tab-btn-settings" onclick="switchMainTab('settings')">
+          <span class="tab-nav-icon">&#9881;</span>
+          <span id="txt-tabSettings">Settings</span>
+        </button>
       </div>
     </div>
   </header>
 
   <!-- ── MAIN ───────────────────────────────────────────── -->
   <main class="main">
+
+  <!-- ══ TOKENS TAB ══════════════════════════════════════ -->
+  <div id="tab-tokens-panel">
 
     <!-- Stats -->
     <div class="stats-grid">
@@ -131,6 +146,221 @@
         </div>
       </div>
     </div>
+  </div><!-- /tab-tokens-panel -->
+
+  <!-- ══ SETTINGS TAB ════════════════════════════════════ -->
+  <div id="tab-settings-panel" style="display:none" class="settings-panel">
+
+    <div class="settings-header">
+      <div class="settings-title" id="s-txt-title">Settings</div>
+      <div class="settings-desc" id="s-txt-desc">Manage appearance, token rotation, and data.</div>
+    </div>
+
+    <!-- Appearance -->
+    <div class="s-card">
+      <div class="s-card-head">
+        <div class="s-card-title" id="s-txt-appearance">Appearance</div>
+        <div class="s-card-desc2" id="s-txt-appearanceDesc">Language, theme and pagination defaults.</div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#127760;</span>
+            <div><div class="s-row-label" id="s-txt-lang">Language</div><div class="s-row-desc" id="s-txt-langDesc">Switch display language</div></div>
+          </div>
+          <div class="s-toggle-group">
+            <button class="s-toggle-btn" id="s-lang-en" onclick="setLang('en')">EN</button>
+            <button class="s-toggle-btn" id="s-lang-vi" onclick="setLang('vi')">VN</button>
+          </div>
+        </div>
+        <div class="s-divider"></div>
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#9681;</span>
+            <div><div class="s-row-label" id="s-txt-theme">Theme</div><div class="s-row-desc" id="s-txt-themeDesc">Light or dark interface</div></div>
+          </div>
+          <div class="s-toggle-group">
+            <button class="s-toggle-btn" id="s-theme-light" onclick="setTheme('light')">&#9728; <span id="s-txt-light">Light</span></button>
+            <button class="s-toggle-btn" id="s-theme-dark" onclick="setTheme('dark')">&#9790; <span id="s-txt-dark">Dark</span></button>
+          </div>
+        </div>
+        <div class="s-divider"></div>
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#8801;</span>
+            <div><div class="s-row-label" id="s-txt-rows">Default rows per page</div><div class="s-row-desc" id="s-txt-rowsDesc">Pagination default on load</div></div>
+          </div>
+          <select class="select select-sm" id="s-rows-select" onchange="setDefaultRows(this.value)" style="width:90px">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="0" id="s-txt-allRows">All</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Token Rotation -->
+    <div class="s-card">
+      <div class="s-card-head">
+        <div class="s-card-title" id="s-txt-rotation">Token Rotation</div>
+        <div class="s-card-desc2" id="s-txt-rotationDesc">Configure how tokens are cycled.</div>
+      </div>
+      <div class="s-card-body">
+
+        <!-- Max concurrent -->
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#8635;</span>
+            <div><div class="s-row-label" id="s-txt-rotConc">Max concurrent tokens</div><div class="s-row-desc" id="s-txt-rotConcDesc">Max tokens running at the same time</div></div>
+          </div>
+          <div class="s-rot-field">
+            <select class="select select-sm" id="s-rot-concurrent" onchange="handleRotSelect('maxConcurrent','s-rot-concurrent',this.value)" style="width:120px">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="0" id="s-txt-unlimited">Unlimited</option>
+              <option value="__custom__" id="s-txt-custom1">Custom…</option>
+            </select>
+            <div class="custom-num-wrap" id="s-rot-concurrent-custom" style="display:none">
+              <input type="number" min="0" class="custom-num-input" id="s-rot-concurrent-input" placeholder="0"
+                onblur="commitRotCustom('maxConcurrent','s-rot-concurrent')"
+                onkeydown="if(event.key==='Enter')commitRotCustom('maxConcurrent','s-rot-concurrent');if(event.key==='Escape')cancelRotCustom('s-rot-concurrent')">
+              <button class="custom-num-ok" onclick="commitRotCustom('maxConcurrent','s-rot-concurrent')">&#10003;</button>
+            </div>
+          </div>
+        </div>
+        <div class="s-divider"></div>
+
+        <!-- Cooldown -->
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#8987;</span>
+            <div><div class="s-row-label" id="s-txt-rotCool">Cooldown between tokens</div><div class="s-row-desc" id="s-txt-rotCoolDesc">Wait time before switching to next token</div></div>
+          </div>
+          <div class="s-rot-field">
+            <select class="select select-sm" id="s-rot-cooldown" onchange="handleRotSelect('cooldownSec','s-rot-cooldown',this.value)" style="width:120px">
+              <option value="0" id="s-txt-0s">0s</option>
+              <option value="10" id="s-txt-10s">10s</option>
+              <option value="30" id="s-txt-30s">30s</option>
+              <option value="60" id="s-txt-1m">1 min</option>
+              <option value="300" id="s-txt-5m">5 min</option>
+              <option value="600" id="s-txt-10m">10 min</option>
+              <option value="1800" id="s-txt-30m">30 min</option>
+              <option value="3600" id="s-txt-1h">1h</option>
+              <option value="__custom__" id="s-txt-custom2">Custom…</option>
+            </select>
+            <div class="custom-num-wrap" id="s-rot-cooldown-custom" style="display:none">
+              <input type="number" min="0" class="custom-num-input" id="s-rot-cooldown-input" placeholder="sec"
+                onblur="commitRotCustom('cooldownSec','s-rot-cooldown')"
+                onkeydown="if(event.key==='Enter')commitRotCustom('cooldownSec','s-rot-cooldown');if(event.key==='Escape')cancelRotCustom('s-rot-cooldown')">
+              <span class="custom-num-unit">s</span>
+              <button class="custom-num-ok" onclick="commitRotCustom('cooldownSec','s-rot-cooldown')">&#10003;</button>
+            </div>
+          </div>
+        </div>
+        <div class="s-divider"></div>
+
+        <!-- Rotation mode -->
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#8644;</span>
+            <div><div class="s-row-label" id="s-txt-rotMode">Rotation mode</div><div class="s-row-desc" id="s-txt-rotModeDesc">Strategy used to pick the next token</div></div>
+          </div>
+          <select class="select select-sm" id="s-rot-mode" onchange="setRotation('rotationMode',this.value)" style="width:160px">
+            <option value="round-robin" id="s-txt-modeRound">Round-robin</option>
+            <option value="random" id="s-txt-modeRandom">Random</option>
+            <option value="priority" id="s-txt-modePriority">By status priority</option>
+          </select>
+        </div>
+        <div class="s-divider"></div>
+
+        <!-- Max requests -->
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">#</span>
+            <div><div class="s-row-label" id="s-txt-rotReq">Max requests per token</div><div class="s-row-desc" id="s-txt-rotReqDesc">Switch token after this many requests. 0 = unlimited.</div></div>
+          </div>
+          <div class="s-rot-field">
+            <select class="select select-sm" id="s-rot-maxreq" onchange="handleRotSelect('maxRequests','s-rot-maxreq',this.value)" style="width:120px">
+              <option value="0" id="s-txt-unlim2">Unlimited</option>
+              <option value="10">10</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="500">500</option>
+              <option value="1000">1000</option>
+              <option value="__custom__" id="s-txt-custom3">Custom…</option>
+            </select>
+            <div class="custom-num-wrap" id="s-rot-maxreq-custom" style="display:none">
+              <input type="number" min="0" class="custom-num-input" id="s-rot-maxreq-input" placeholder="0"
+                onblur="commitRotCustom('maxRequests','s-rot-maxreq')"
+                onkeydown="if(event.key==='Enter')commitRotCustom('maxRequests','s-rot-maxreq');if(event.key==='Escape')cancelRotCustom('s-rot-maxreq')">
+              <button class="custom-num-ok" onclick="commitRotCustom('maxRequests','s-rot-maxreq')">&#10003;</button>
+            </div>
+          </div>
+        </div>
+        <div class="s-divider"></div>
+
+        <!-- Skip invalid -->
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#8677;</span>
+            <div><div class="s-row-label" id="s-txt-rotSkip">Skip invalid &amp; expired tokens</div><div class="s-row-desc" id="s-txt-rotSkipDesc">Automatically skip tokens with bad status</div></div>
+          </div>
+          <button class="s-switch" id="s-rot-skipInvalid" onclick="toggleRotation('skipInvalid')" role="switch"><span></span></button>
+        </div>
+        <div class="s-divider"></div>
+
+        <!-- Auto-mark -->
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#9888;</span>
+            <div><div class="s-row-label" id="s-txt-rotMark">Auto-mark failed tokens</div><div class="s-row-desc" id="s-txt-rotMarkDesc">Mark token as invalid when it returns an auth error</div></div>
+          </div>
+          <button class="s-switch" id="s-rot-autoMark" onclick="toggleRotation('autoMark')" role="switch"><span></span></button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Data Management -->
+    <div class="s-card">
+      <div class="s-card-head">
+        <div class="s-card-title" id="s-txt-dataTitle">Data Management</div>
+        <div class="s-card-desc2" id="s-txt-dataDesc">Export or back up your token data.</div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon">&#8659;</span>
+            <div><div class="s-row-label" id="s-txt-exportTitle">Export as CSV</div><div class="s-row-desc" id="s-txt-exportDesc">Download all tokens as a CSV file</div></div>
+          </div>
+          <button class="btn-sm btn-outline" onclick="exportCsv()">&#8659; <span id="s-txt-exportBtn">Download CSV</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="s-card s-card-danger">
+      <div class="s-card-head s-card-head-danger">
+        <div class="s-card-title s-card-title-danger" id="s-txt-dangerTitle">Danger Zone</div>
+        <div class="s-card-desc2" id="s-txt-dangerDesc">Irreversible actions. Be careful.</div>
+      </div>
+      <div class="s-card-body">
+        <div class="s-row">
+          <div class="s-row-info">
+            <span class="s-icon" style="color:var(--danger)">&#128465;</span>
+            <div><div class="s-row-label" id="s-txt-clearBtn">Delete All Tokens</div><div class="s-row-desc" id="s-txt-clearDesc">Permanently remove all tokens. Cannot be undone.</div></div>
+          </div>
+          <button class="btn-danger-md" onclick="confirmDeleteAll()" id="s-btn-clearAll">Delete All</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-settings-panel -->
+
   </main>
 
   <!-- ── MODAL: ADD / EDIT ───────────────────────────────── -->

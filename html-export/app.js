@@ -63,6 +63,56 @@ const LANG = {
     pageInfo: (from, to, total) => `${from}–${to} of ${total}`,
     pagePrev: "‹",  pageNext: "›",
     pageFirst: "«", pageLast: "»",
+    // Tabs
+    tabTokens: "Tokens",
+    tabSettings: "Settings",
+    // Settings page
+    settingsTitle: "Settings",
+    settingsDesc: "Manage appearance, token rotation, and data.",
+    sectionAppearance: "Appearance",
+    sectionAppearanceDesc: "Language, theme and pagination defaults.",
+    settingLang: "Language",
+    settingLangDesc: "Switch display language",
+    settingTheme: "Theme",
+    settingThemeDesc: "Light or dark interface",
+    themeLight: "Light",
+    themeDark: "Dark",
+    settingRows: "Default rows per page",
+    settingRowsDesc: "Pagination default on load",
+    // Token Rotation
+    sectionRotation: "Token Rotation",
+    sectionRotationDesc: "Configure how tokens are cycled.",
+    rotConc: "Max concurrent tokens",
+    rotConcDesc: "Max tokens running at the same time",
+    rotCool: "Cooldown between tokens",
+    rotCoolDesc: "Wait time before switching to next token",
+    rotMode: "Rotation mode",
+    rotModeDesc: "Strategy used to pick the next token",
+    rotModeRound: "Round-robin",
+    rotModeRandom: "Random",
+    rotModePriority: "By status priority",
+    rotReq: "Max requests per token",
+    rotReqDesc: "Switch token after this many requests. 0 = unlimited.",
+    rotSkip: "Skip invalid & expired tokens",
+    rotSkipDesc: "Automatically skip tokens with bad status",
+    rotMark: "Auto-mark failed tokens",
+    rotMarkDesc: "Mark token as invalid when it returns an auth error",
+    unlimited: "Unlimited",
+    customDots: "Custom…",
+    cooldown0s: "0s", cooldown10s: "10s", cooldown30s: "30s",
+    cooldown1m: "1 min", cooldown5m: "5 min", cooldown10m: "10 min", cooldown30m: "30 min", cooldown1h: "1h",
+    // Data Management
+    dataTitle: "Data Management",
+    dataDesc: "Export or back up your token data.",
+    exportTitle: "Export as CSV",
+    exportDesc: "Download all tokens as a CSV file",
+    exportBtn: "Download CSV",
+    rotSaved: "Settings saved",
+    // Danger Zone
+    dangerTitle: "Danger Zone",
+    dangerDesc: "Irreversible actions. Be careful.",
+    clearBtn: "Delete All Tokens",
+    clearDesc: "Permanently remove all tokens. Cannot be undone.",
   },
   vi: {
     appName: "Quản lý Token",         appSub: "Kho lưu token Facebook",
@@ -121,6 +171,56 @@ const LANG = {
     pageInfo: (from, to, total) => `${from}–${to} / ${total}`,
     pagePrev: "‹",  pageNext: "›",
     pageFirst: "«", pageLast: "»",
+    // Tabs
+    tabTokens: "Tokens",
+    tabSettings: "Cài đặt",
+    // Settings page
+    settingsTitle: "Cài đặt",
+    settingsDesc: "Quản lý giao diện, xoay vòng token và dữ liệu.",
+    sectionAppearance: "Giao diện",
+    sectionAppearanceDesc: "Ngôn ngữ, chủ đề và phân trang mặc định.",
+    settingLang: "Ngôn ngữ",
+    settingLangDesc: "Chuyển đổi ngôn ngữ hiển thị",
+    settingTheme: "Chủ đề",
+    settingThemeDesc: "Giao diện sáng hoặc tối",
+    themeLight: "Sáng",
+    themeDark: "Tối",
+    settingRows: "Số dòng mặc định mỗi trang",
+    settingRowsDesc: "Phân trang mặc định khi mở",
+    // Token Rotation
+    sectionRotation: "Xoay vòng Token",
+    sectionRotationDesc: "Cấu hình cách token được luân phiên.",
+    rotConc: "Số token chạy đồng thời",
+    rotConcDesc: "Giới hạn số token hoạt động cùng lúc",
+    rotCool: "Thời gian nghỉ giữa các token",
+    rotCoolDesc: "Thời gian chờ trước khi chuyển token tiếp theo",
+    rotMode: "Kiểu xoay vòng",
+    rotModeDesc: "Chiến lược chọn token tiếp theo",
+    rotModeRound: "Tuần tự (Round-robin)",
+    rotModeRandom: "Ngẫu nhiên",
+    rotModePriority: "Theo trạng thái",
+    rotReq: "Số request tối đa mỗi token",
+    rotReqDesc: "Chuyển token sau số request này. 0 = không giới hạn.",
+    rotSkip: "Bỏ qua token lỗi / hết hạn",
+    rotSkipDesc: "Tự động bỏ qua token có trạng thái xấu",
+    rotMark: "Tự động đánh dấu token thất bại",
+    rotMarkDesc: "Đổi trạng thái thành không hợp lệ khi lỗi xác thực",
+    unlimited: "Không giới hạn",
+    customDots: "Tuỳ chỉnh…",
+    cooldown0s: "0 giây", cooldown10s: "10 giây", cooldown30s: "30 giây",
+    cooldown1m: "1 phút", cooldown5m: "5 phút", cooldown10m: "10 phút", cooldown30m: "30 phút", cooldown1h: "1 giờ",
+    // Data Management
+    dataTitle: "Quản lý dữ liệu",
+    dataDesc: "Xuất hoặc sao lưu dữ liệu token.",
+    exportTitle: "Xuất ra CSV",
+    exportDesc: "Tải toàn bộ token xuống dạng file CSV",
+    exportBtn: "Tải CSV",
+    rotSaved: "Đã lưu cài đặt",
+    // Danger Zone
+    dangerTitle: "Vùng nguy hiểm",
+    dangerDesc: "Các thao tác không thể hoàn tác. Cẩn thận.",
+    clearBtn: "Xóa tất cả Token",
+    clearDesc: "Xóa vĩnh viễn toàn bộ token. Không thể hoàn tác.",
   }
 };
 
@@ -137,6 +237,17 @@ let state = {
   // Pagination
   currentPage: 1,
   perPage: 25,         // 0 = show all
+  // Active tab
+  activeTab: "tokens",
+  // Token Rotation config
+  rotation: {
+    maxConcurrent: "1",
+    cooldownSec: "0",
+    rotationMode: "round-robin",
+    maxRequests: "0",
+    skipInvalid: true,
+    autoMark: true,
+  },
 };
 
 /* ── LocalStorage ───────────────────────────────────────── */
@@ -148,6 +259,7 @@ function loadState() {
     if (Array.isArray(saved.tokens)) state.tokens = saved.tokens;
     if (saved.nextId) state.nextId = saved.nextId;
     if (saved.perPage !== undefined) state.perPage = Number(saved.perPage);
+    if (saved.rotation) state.rotation = { ...state.rotation, ...saved.rotation };
   } catch (_) {}
 }
 
@@ -158,6 +270,7 @@ function saveState() {
     tokens: state.tokens,
     nextId: state.nextId,
     perPage: state.perPage,
+    rotation: state.rotation,
   }));
 }
 
@@ -231,6 +344,72 @@ function applyLang() {
     document.getElementById("lang-en").className = "lang-dim";
     document.getElementById("lang-vi").className = "lang-active";
   }
+
+  // Tab labels
+  setText("txt-tabTokens", T.tabTokens);
+  setText("txt-tabSettings", T.tabSettings);
+  // Settings page
+  setText("s-txt-title", T.settingsTitle);
+  setText("s-txt-desc", T.settingsDesc);
+  setText("s-txt-appearance", T.sectionAppearance);
+  setText("s-txt-appearanceDesc", T.sectionAppearanceDesc);
+  setText("s-txt-lang", T.settingLang);
+  setText("s-txt-langDesc", T.settingLangDesc);
+  setText("s-txt-theme", T.settingTheme);
+  setText("s-txt-themeDesc", T.settingThemeDesc);
+  setText("s-txt-light", T.themeLight);
+  setText("s-txt-dark", T.themeDark);
+  setText("s-txt-rows", T.settingRows);
+  setText("s-txt-rowsDesc", T.settingRowsDesc);
+  setText("s-txt-allRows", T.allRows);
+  // Rotation
+  setText("s-txt-rotation", T.sectionRotation);
+  setText("s-txt-rotationDesc", T.sectionRotationDesc);
+  setText("s-txt-rotConc", T.rotConc);
+  setText("s-txt-rotConcDesc", T.rotConcDesc);
+  setText("s-txt-rotCool", T.rotCool);
+  setText("s-txt-rotCoolDesc", T.rotCoolDesc);
+  setText("s-txt-rotMode", T.rotMode);
+  setText("s-txt-rotModeDesc", T.rotModeDesc);
+  setText("s-txt-modeRound", T.rotModeRound);
+  setText("s-txt-modeRandom", T.rotModeRandom);
+  setText("s-txt-modePriority", T.rotModePriority);
+  setText("s-txt-rotReq", T.rotReq);
+  setText("s-txt-rotReqDesc", T.rotReqDesc);
+  setText("s-txt-rotSkip", T.rotSkip);
+  setText("s-txt-rotSkipDesc", T.rotSkipDesc);
+  setText("s-txt-rotMark", T.rotMark);
+  setText("s-txt-rotMarkDesc", T.rotMarkDesc);
+  // Cooldown option labels
+  setText("s-txt-0s", T.cooldown0s);
+  setText("s-txt-10s", T.cooldown10s);
+  setText("s-txt-30s", T.cooldown30s);
+  setText("s-txt-1m", T.cooldown1m);
+  setText("s-txt-5m", T.cooldown5m);
+  setText("s-txt-10m", T.cooldown10m);
+  setText("s-txt-30m", T.cooldown30m);
+  setText("s-txt-1h", T.cooldown1h);
+  // Unlimited options
+  setText("s-txt-unlimited", T.unlimited);
+  setText("s-txt-unlim2", T.unlimited);
+  setText("s-txt-custom1", T.customDots);
+  setText("s-txt-custom2", T.customDots);
+  setText("s-txt-custom3", T.customDots);
+  // Data / Danger
+  setText("s-txt-dataTitle", T.dataTitle);
+  setText("s-txt-dataDesc", T.dataDesc);
+  setText("s-txt-exportTitle", T.exportTitle);
+  setText("s-txt-exportDesc", T.exportDesc);
+  setText("s-txt-exportBtn", T.exportBtn);
+  setText("s-txt-dangerTitle", T.dangerTitle);
+  setText("s-txt-dangerDesc", T.dangerDesc);
+  setText("s-txt-clearBtn", T.clearBtn);
+  setText("s-txt-clearDesc", T.clearDesc);
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
 }
 
 function toggleLang() {
@@ -704,6 +883,155 @@ function showToast(title, desc, success = true) {
   el.innerHTML = `<div class="toast-title">${escHtml(title)}</div><div class="toast-desc">${escHtml(desc)}</div>`;
   document.getElementById("toast-container").appendChild(el);
   setTimeout(() => el.remove(), 3000);
+}
+
+/* ── Tab switching ──────────────────────────────────────── */
+function switchMainTab(tab) {
+  state.activeTab = tab;
+  const isTokens = tab === "tokens";
+  document.getElementById("tab-tokens-panel").style.display   = isTokens ? "" : "none";
+  document.getElementById("tab-settings-panel").style.display = isTokens ? "none" : "";
+  document.getElementById("btn-add-token").style.display      = isTokens ? "" : "none";
+  document.getElementById("tab-btn-tokens").classList.toggle("active", isTokens);
+  document.getElementById("tab-btn-settings").classList.toggle("active", !isTokens);
+  if (!isTokens) applySettingsPanel();
+}
+
+/* ── Settings panel sync ────────────────────────────────── */
+function applySettingsPanel() {
+  const rot = state.rotation;
+  // Language buttons
+  document.getElementById("s-lang-en").classList.toggle("active", state.lang === "en");
+  document.getElementById("s-lang-vi").classList.toggle("active", state.lang === "vi");
+  // Theme buttons
+  document.getElementById("s-theme-light").classList.toggle("active", state.theme === "light");
+  document.getElementById("s-theme-dark").classList.toggle("active", state.theme === "dark");
+  // Rows per page
+  document.getElementById("s-rows-select").value = String(state.perPage);
+  // Rotation selects – sync each, handle custom values
+  syncRotSelect("s-rot-concurrent", rot.maxConcurrent);
+  syncRotSelect("s-rot-cooldown",   rot.cooldownSec);
+  syncRotSelect("s-rot-mode",       rot.rotationMode);
+  syncRotSelect("s-rot-maxreq",     rot.maxRequests);
+  // Switches
+  applySwitchState("s-rot-skipInvalid", rot.skipInvalid);
+  applySwitchState("s-rot-autoMark",    rot.autoMark);
+}
+
+function syncRotSelect(selectId, value) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const options = Array.from(sel.options).map(o => o.value).filter(v => v !== "__custom__");
+  if (options.includes(value)) {
+    sel.value = value;
+    const customWrap = document.getElementById(selectId + "-custom");
+    if (customWrap) customWrap.style.display = "none";
+  } else {
+    // Custom value – show the input
+    sel.value = "__custom__";
+    const customWrap = document.getElementById(selectId + "-custom");
+    if (customWrap) {
+      customWrap.style.display = "flex";
+      const inp = document.getElementById(selectId + "-input");
+      if (inp) inp.value = value;
+    }
+  }
+}
+
+function applySwitchState(id, on) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.classList.toggle("on", on);
+  btn.setAttribute("aria-checked", String(on));
+}
+
+/* ── Settings: Appearance ───────────────────────────────── */
+function setLang(lang) {
+  state.lang = lang;
+  applyLang(); renderTable(); saveState();
+  applySettingsPanel();
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  applyTheme(); saveState();
+  applySettingsPanel();
+}
+
+function setDefaultRows(value) {
+  state.perPage = Number(value);
+  document.getElementById("per-page-select").value = value;
+  saveState();
+}
+
+/* ── Settings: Token Rotation ───────────────────────────── */
+function setRotation(field, value) {
+  state.rotation[field] = value;
+  saveState();
+  showToast(t().rotSaved, "");
+}
+
+function toggleRotation(field) {
+  state.rotation[field] = !state.rotation[field];
+  applySwitchState("s-rot-" + (field === "skipInvalid" ? "skipInvalid" : "autoMark"), state.rotation[field]);
+  saveState();
+  showToast(t().rotSaved, "");
+}
+
+function handleRotSelect(field, selectId, value) {
+  if (value === "__custom__") {
+    const wrap = document.getElementById(selectId + "-custom");
+    if (wrap) { wrap.style.display = "flex"; }
+    const inp = document.getElementById(selectId + "-input");
+    if (inp) { inp.value = state.rotation[field]; inp.focus(); inp.select(); }
+  } else {
+    const wrap = document.getElementById(selectId + "-custom");
+    if (wrap) wrap.style.display = "none";
+    setRotation(field, value);
+  }
+}
+
+function commitRotCustom(field, selectId) {
+  const inp = document.getElementById(selectId + "-input");
+  if (!inp) return;
+  const n = parseInt(inp.value, 10);
+  if (!isNaN(n) && n >= 0) {
+    setRotation(field, String(n));
+    const wrap = document.getElementById(selectId + "-custom");
+    if (wrap) wrap.style.display = "none";
+    syncRotSelect(selectId, String(n));
+  } else {
+    inp.value = state.rotation[field];
+  }
+}
+
+function cancelRotCustom(selectId) {
+  const field = selectId === "s-rot-concurrent" ? "maxConcurrent"
+    : selectId === "s-rot-cooldown" ? "cooldownSec"
+    : selectId === "s-rot-maxreq"   ? "maxRequests" : "";
+  const wrap = document.getElementById(selectId + "-custom");
+  if (wrap) wrap.style.display = "none";
+  syncRotSelect(selectId, state.rotation[field] || "0");
+}
+
+/* ── Settings: Export CSV ───────────────────────────────── */
+function exportCsv() {
+  const T = t();
+  const header = "ID,FB ID,Token,Cookie,Status,Note,Created At";
+  const rows = state.tokens.map(tk =>
+    [tk.id, `"${(tk.fbId||"").replace(/"/g,'""')}"`, `"${(tk.token||"").replace(/"/g,'""')}"`,
+     `"${(tk.cookie||"").replace(/"/g,'""')}"`, tk.status,
+     `"${(tk.note||"").replace(/"/g,'""')}"`, tk.createdAt].join(",")
+  );
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `tokens_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(T.exportTitle, `${state.tokens.length} tokens exported.`);
 }
 
 /* ── Init ───────────────────────────────────────────────── */
